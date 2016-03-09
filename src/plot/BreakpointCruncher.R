@@ -2,8 +2,8 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointCruncher.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-g fn.ggp] [-p plot.type] 
-#                [-a alpha][-c color][-f fill][-s shape][-z size] BP.fn breakpoint.ggp
+# Usage: Rscript BreakpointCruncher.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] 
+#                [-a alpha][-c color][-f fill][-s shape][-t linetype][-z size] BP.fn breakpoint.ggp
 #
 #   Create or append various plots to breakpoint coordinate GGP file.  Chrom A coordinates are plotted
 #   on X axis, B on Y.
@@ -16,26 +16,27 @@
 # Input arguments:
 #
 # * BP.fn is either BPC or BPR file, depending on argument of -p.
-# * breakpoint.ggp is output file in GGP format
+# * breakpoint.ggp is output file in GGP format. If -P defined, .pdf appended to filename if necessary
 #
 # Optional arguments:
 #
-# -g fn.ggp: Append graphics to given ggp file, rather than creating new ggp file.
+# -G fn.ggp: Append graphics to given ggp file, rather than creating new ggp file.
 # -A, -B: Define A and B range, resp., specified as "C" or "C:M-N", where C is chromosome name
 #         and M,N are genomic start, stop positions.  Range is used for two distinct purposes:
 #           1) Filter data before plotting
 #           2) Specify plot region
-#         Plot region is specified only if -g is not specified (i.e., creating new GGP)
+#         Plot region is specified only if -G is not specified (i.e., creating new GGP)
 #         Filtering data may be prevented with -F.
 # -F: Do not filter data.  See above.
 # -p: plot.type: one of "point", "region", "segment"; these require BPC, BPR, BPR data files, resp.  "point" is default.
-# -P: Output as PDF file instead of GGP
+# -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 #
 # The following constant attributes can be defined:
 #   -a alpha
 #   -c color
 #   -f fill
 #   -s shape
+#   -t linetype
 #   -z size
 # These correspond to attributes in ggplot geom call.  If -c or -f are not
 # defined with a constant attribute, and an attribute column exists in the BPC
@@ -58,42 +59,17 @@ suppressPackageStartupMessages(library("ggplot2"))
 # these control printing of genomic position labels
 options(scipen=3)  # no scientific notation
 
-
-# Return the command line argument associated with a given flag (i.e., -o foo),
-# or the default value if argument not specified.
-# Note that this will break if an argument is not supplied after the flag.
-get_val_arg = function(args, flag, default) {
-    ix = pmatch(flag, args)
-    if (!is.na(ix)){ val = args[ix+1] } else { val = default }
-    return(val)
+source_relative = function(source.fn) {
+    # http://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
+    initial.options = commandArgs(trailingOnly = FALSE)
+    file.arg.name = "--file="
+    script.name = sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+    script.basename = dirname(script.name)
+    other.name = paste(sep="/", script.basename, source.fn)
+#    print(paste("Sourcing",other.name,"from",script.name))
+    source(other.name)
 }
-
-# Return boolean specifying whether given flag appears in command line (i.e., -o),
-get_bool_arg = function(args, flag) {
-    ix = pmatch(flag, args)
-    if (!is.na(ix)){ val = TRUE } else { val = FALSE }
-    return(val)
-}
-
-parse_chr = function(chrarg) {
-    # Parse the chromosome limit string.  Accepted formats:
-    # -c 14
-    # -c 14:12345-12456
-    range.pos <- NULL
-    range.chr <- NULL
-    if (chrarg != 'all') {
-        chrlist<-strsplit(chrarg, ":")[[1]]
-        range.chr <- strsplit(chrlist[1], ",")[[1]][1]  # chromosome name -- only one allowed
-        if (length(chrlist) == 2) {
-            range.pos<-as.numeric(strsplit(chrlist[2], "-")[[1]])
-        }
-    } else {
-        print("Error: Must specify chromosome (-c).  Quitting")
-        q()
-    }
-
-    return( list('range.pos'=range.pos, 'range.chr'=range.chr) )
-}
+source_relative("BPS_Util.R")
 
 # Usage: 
 #   args = parse_args()
@@ -103,11 +79,11 @@ parse_args = function() {
 
     # optional arguments
     verbose = get_bool_arg(args, "-v")
-    range.A = parse_chr(get_val_arg(args, "-A", "all"))  # accessible as range.pos.A, range.chr.A
-    range.B = parse_chr(get_val_arg(args, "-B", "all"))  # accessible as range.pos.B, range.chr.B
+    range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.pos.A, range.chr.A
+    range.B = parse.range.str(get_val_arg(args, "-B", "all"))  # accessible as range.pos.B, range.chr.B
 
     skip.data.filter = get_bool_arg(args, "-F")
-    in.ggp = get_val_arg(args, "-g", NULL)
+    in.ggp = get_val_arg(args, "-G", NULL)
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
 
@@ -115,6 +91,7 @@ parse_args = function() {
     color = get_val_arg(args, "-c", NULL)
     fill = get_val_arg(args, "-f", NULL)
     shape = get_val_arg(args, "-s", NULL)
+    linetype = get_val_arg(args, "-t", NULL)
     size = get_val_arg(args, "-z", NULL)
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
@@ -125,7 +102,7 @@ parse_args = function() {
             'range.pos.A'=range.A$range.pos, 'range.chr.A'=range.A$range.chr,  # note we are expanding out range.A
             'range.pos.B'=range.B$range.pos, 'range.chr.B'=range.B$range.chr, 
             'skip.data.filter'=skip.data.filter, 'in.ggp'=in.ggp, 'plot.type'=plot.type,
-            'alpha'= alpha, 'color'= color, 'fill'= fill, 'shape'= shape, 'size'= size,
+            'alpha'= alpha, 'color'= color, 'fill'= fill, 'shape'= shape, 'size'= size, 'linetype'=linetype,
             'out.ggp'=out.ggp, 'data.fn' = data.fn, 'pdf.out'=pdf.out
             )
     if (val$verbose) { print(val) }
@@ -133,80 +110,7 @@ parse_args = function() {
     return (val)
 }
 
-# reads in a BPC file which specifies breakpoint coordinates with optional attributes column.
-read.BPC = function(BPC.fn) {
-    data = read.table(BPC.fn, sep='\t')
-    if (ncol(data) == 4) {
-        names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B")
-        data$attribute = "default"
-    } else if (ncol(data) == 5) {
-        names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B", "attribute")
-    } else {
-        stop("Unexpected number of rows in ", BPC.fn)
-    }
-    data$attribute = factor(data$attribute)
-    return(data)
-}
-
-# * BPR: chrom.A, pos.A.start, pos.A.end, chrom.B, pos.B.start, pos.B.end, [attribute] 
-read.BPR = function(BPR.fn) {
-    data = read.table(BPR.fn, sep='\t')
-    if (ncol(data) == 7) {
-        names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end")
-        data$attribute = "default"
-    } else if (ncol(data) == 8) {
-        names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
-    } else {
-        stop("Unexpected number of rows in ", BPR.fn)
-    }
-    data$attribute = factor(data$attribute)
-    return(data)
-}
-
-filter.BPC = function(data, range.chr.A, range.pos.A, range.chr.B, range.pos.B) {
-    if (! is.null(range.chr.A)) data = data[data$chrom.A %in% range.chr.A,]
-    if (! is.null(range.chr.B)) data = data[data$chrom.B %in% range.chr.B,]
-
-    if (!is.null(range.pos.A)) {
-        data = data[data$pos.A >= range.pos.A[1] & data$pos.A <= range.pos.A[2],]
-    } 
-    if (!is.null(range.pos.B)) {
-        data = data[data$pos.B >= range.pos.B[1] & data$pos.B <= range.pos.B[2],]
-    } 
-    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
-    data = data[complete.cases(data),]
-    return(data)
-}
-
-# evaluate whether there is any overlap between two segments a and b
-# returns array of indices (which()).
-is.overlapping = function(a.start, a.end, b.start, b.end) {
-    # test whether a fully before b or b fully before a.  If neither, there is overlap.
-    is.overlapping = which( ! (a.end < b.start | b.end < a.start))
-    return(is.overlapping)
-}
-
-# We retain entire BPR region when any part of it falls within range of interest.  Region is
-# not cropped.
-# names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end")
-filter.BPR = function(data, range.chr.A, range.pos.A, range.chr.B, range.pos.B) {
-    if (! is.null(range.chr.A)) data = data[data$chrom.A %in% range.chr.A,]
-    if (! is.null(range.chr.B)) data = data[data$chrom.B %in% range.chr.B,]
-
-    if (!is.null(range.pos.A)) {
-        in.range.A = is.overlapping(data$pos.A.start, data$pos.A.end, range.pos.A[1], range.pos.A[2])
-        data = data[in.range.A,]
-    } 
-    if (!is.null(range.pos.B)) {
-        in.range.B = is.overlapping(data$pos.B.start, data$pos.B.end, range.pos.B[1], range.pos.B[2])
-        data = data[in.range.B,]
-    } 
-    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
-    data = data[complete.cases(data),]
-    return(data)
-}
-
-make.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
+make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
     # define basic properties of Breakpoint Coordinates GGP object.
     # TODO: see if this works.  It may be necessary to set some things at the end of plotting?
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
@@ -226,14 +130,15 @@ make.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
 
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
-#    ggp = ggp + theme(legend.position="none")  # is this what we want?
 
-    # necessary?
+
+    # In general, legends will be modified downstream of ggp creation.
+    # ggp = ggp + theme(legend.position="none")  
     # ggp = ggp + scale_shape(guide=FALSE)  # get rid of shape legend but keep others
     return(ggp)
 }
 
-
+# for defining colors... based on past results.
 # default CTX values: geom_point.  color="#377EB8", alpha = 0.5
 # rSBP: geom_point.  color="#4DAF4A", alpha=0.75, shape=3, size=4, show_guide=FALSE
 # pindel region: geom_rect. fill="gray50", color=NA, alpha=0.2
@@ -300,9 +205,9 @@ render.segment = function(ggp, BPR, color=NA, alpha=NA, size=NA, linetype=NA) {
 args = parse_args()
 
 if (is.null(args$in.ggp)) {
-    ggp = make.GGP(args$range.pos.A, args$range.pos.B)
+    ggp = make.breakpoint.GGP(args$range.pos.A, args$range.pos.B)
 } else {
-    ggp = readRDS(args$ggp.in)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
+    ggp = readRDS(args$in.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
 }
 
 if (args$plot.type == "point") {
@@ -324,18 +229,11 @@ if (args$plot.type == "point") {
     stop("Unknown plot type", args$plot.type)
 }
 
+
 # TODO:
 # test and develop:
 #   * adding layers to a GGP object
 #   * Pindel regions
 #   * segments
 
-# now save breakpoints.ggp to file
-# http://stat.ethz.ch/R-manual/R-devel/library/base/html/save.html
-if (!args$pdf.out) {
-    cat(paste("Saving to GPP file", args$out.ggp, "\n"))
-    saveRDS(ggp, file=args$out.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
-} else {
-    cat(paste("Saving to PDF file", args$out.ggp, "\n"))
-    ggsave(plot=ggp, filename=args$out.ggp, useDingbats=FALSE)
-}
+write.GGP(ggp, args$out.ggp, args$pdf.out)
