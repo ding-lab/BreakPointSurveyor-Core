@@ -168,6 +168,7 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
     if (!is.null(color)) args$color = color
     else { # if not specified, color is an aes with value given by attribute column
         aes.args$color = "attribute"
+        
     }
     args$data=BPC
 
@@ -177,6 +178,14 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
 
     # now call geom_point with all the arguments
     ggp = ggp + do.call(geom_point, args)  
+
+    # If there was no attribute column specified in BPC file (all attributes are "default") then
+    # get rid of color legend.
+    attrib.uniq = unique(BPC$attribute)
+    if (length(attrib.uniq) == 1 & attrib.uniq[1] == "default") {
+        ggp = ggp + scale_color_discrete(guide=FALSE)  
+    }
+
     return(ggp)
 }
 

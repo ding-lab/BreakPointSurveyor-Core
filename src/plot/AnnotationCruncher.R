@@ -2,25 +2,25 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript AnnotationCruncher.R [-v] [-V] [-a range.start] [-b range.end] [-c chrom] [-e exons.bed] [-D dodge] [-B] genes.bed annotation.ggp
+# Usage: Rscript AnnotationCruncher.R [-v] [-P] [-V] [-A range] [-e exons.bed] [-D dodge] [-B] genes.bed out.ggp
 #
 # Create gene annotation GGP files with optional exon definitions for each gene.  
 #
 # Input arguments:
 #
-# genes.bed is a genes BED file.  Genes outside of the range given by (chrom, range.start, range.end) will be discarded.
-# annotation.gpp is output file in GGP format
+# * genes.bed is a genes BED file.  Genes outside of the range given by (chrom, range.start, range.end) will be discarded.
+# * out.ggp is filename of GGP output  If -P defined, .pdf appended to filename if necessary
 
-# Mandatory:
-# -a range.start, -b range.end, -c chrom: chromosome name and start, end positions of region of interest.  1-based.  Mandatory.
 # Optional arguments:
+# -A: Define range, specified as "C" or "C:M-N", where C is chromosome name
+#         and M,N are genomic start, stop positions.  Range is used for two distinct purposes:
+#           1) Filter data before plotting
+#           2) Specify plot region
+#         Filtering data may be prevented with -F.  
 # -D annotation dodge parameter.  Annotations will fall into this many lines.
-# -e exons.bed.  Bed file which indicates regions of exons.  Similar to genes.bed.
+# -e exons.bed.  BED file which indicates regions of exons.  Similar to genes.bed.
 # -B: rotate text -90 degrees.  Useful for annotating chrom B
-#
-# v2.0 - virus annotation deprecated.
-# v1.1 - fixed annotation bugs based on /Users/mwyczalk/Data/Virus/Virus_2013.9a/RSEM-Exon/RPKM-Scatter/src/RPKM_scatter_plotter.R 
-
+# -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 
 options("width"=180) # useful for debugging
 library("bitops")
@@ -28,72 +28,42 @@ library("plyr")
 suppressPackageStartupMessages(library("ggplot2"))
 #require(gtable)
 
-# Return the command line argument associated with a given flag (i.e., -o foo),
-# or the default value if argument not specified.
-# Note that this will break if an argument is not supplied after the flag.
-get_val_arg = function(args, flag, default) {
-    ix = pmatch(flag, args)
-    if (!is.na(ix)){ val = args[ix+1] } else { val = default }
-    return(val)
+source_relative = function(source.fn) {
+    # http://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
+    initial.options = commandArgs(trailingOnly = FALSE)
+    file.arg.name = "--file="
+    script.name = sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+    script.basename = dirname(script.name)
+    other.name = paste(sep="/", script.basename, source.fn)
+#    print(paste("Sourcing",other.name,"from",script.name))
+    source(other.name)
 }
+source_relative("BPS_Util.R")
 
-# Return boolean specifying whether given flag appears in command line (i.e., -o),
-get_bool_arg = function(args, flag) {
-    ix = pmatch(flag, args)
-    if (!is.na(ix)){ val = TRUE } else { val = FALSE }
-    return(val)
-}
-
-# Usage: 
-#   args = parse_args()
-#   print(args$disease.filter)
 parse_args = function() {
     args = commandArgs(trailingOnly = TRUE)
 
     # optional arguments
     verbose = get_bool_arg(args, "-v")
-    range.start = get_val_arg(args, "-a", NA)  # default should be NA for things converted to numeric
-    range.end = get_val_arg(args, "-b", NA)
-    chrom = get_val_arg(args, "-c", "all")
+    pdf.out = get_bool_arg(args, "-P")
+
+    range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.chr, start=range.pos[1], start=range.pos[2]
     exons.bed.fn = get_val_arg(args, "-e", NULL)
     dodge = get_val_arg(args, "-D", "4")
     label.flip = get_bool_arg(args, "-B")
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
-    ggp.fn = args[length(args)];             args = args[-length(args)]
+    out.ggp = args[length(args)];             args = args[-length(args)]
     genes.bed.fn = args[length(args)];      args = args[-length(args)]
 
-    val = list( 'verbose' = verbose, 'range.start' = as.numeric(range.start),
-            'range.end' = as.numeric(range.end), 'chrom' = chrom, 'exons.bed.fn' = exons.bed.fn, 'dodge' = as.numeric(dodge),
-            'ggp.fn' = ggp.fn, 'genes.bed.fn' = genes.bed.fn, 'label.flip'=label.flip)
+    val = list( 'range.pos'=range.A$range.pos, 'range.chr'=range.A$range.chr,  'verbose' = verbose, 
+            'exons.bed.fn' = exons.bed.fn, 'dodge' = as.numeric(dodge), 'pdf.out'=pdf.out,
+            'out.ggp' = out.ggp, 'genes.bed.fn' = genes.bed.fn, 'label.flip'=label.flip)
     if (val$verbose) { print(val) }
 
     return (val)
 }
 
-# be able to read bed files of arbitrary number of columns.  Columns named as described here:
-#   http://bedtools.readthedocs.org/en/latest/content/general-usage.html
-read.bed = function(bed.fn) {
-    #data = read.csv(bed.fn, header = FALSE, sep = "\t", col.names=c("chrom", "start", "end", "name"), row.names=NULL)
-    # this complains if file has zero lines
-    data = read.csv(bed.fn, header = FALSE, sep = "\t", row.names=NULL)
-    names(data)[1:3] = c("chrom", "start", "end")
-    if (length(names(data)) > 3) names(data)[4] = "name" 
-    if (length(names(data)) > 4) names(data)[5] = "score" 
-    if (length(names(data)) > 5) names(data)[6] = "strand" 
-    return(data)
-}
-
-# read bed file with gene or exon definitions
-read.filtered.bed = function(bed.fn, chrom, range.start, range.end) {
-    data = read.bed(bed.fn)
-    # discard rows (exons or genes) which do not overlap with range of interest.
-    # Do this by excluding rows whose 1) start is greater than range end or 2) end is less than range start
-    data = data[data$chrom == chrom,]
-    data = data[data$start < range.end,]
-    data = data[data$end > range.start,]
-    return(data)
-}
 
 # Annotation data frames have the following columns:
 # xmax, xmin, ymax, ymin - determines position of annotation box
@@ -105,16 +75,17 @@ read.filtered.bed = function(bed.fn, chrom, range.start, range.end) {
 # we make sure labels are unique (no genes listed twice) 
 
 # Creates annotation data frame which describes genes to annotate
-get.chrom.annotation.df = function(genes, range.start, range.end, dodge, height=1) {
+get.chrom.annotation.df = function(genes, range.pos, dodge, height=1) {
     annotation = data.frame(xmin=genes$start, xmax=genes$end, label=genes$name, label_group=genes$name)
     # in some cases a gene is listed twice (e.g. KRBOX1).  To keep gene names unique, collapse all duplicates
     # (identified by label and label_group) and keep the superset of positions
     annotation = ddply(annotation, c("label", "label_group"), summarise, xmin = min(xmin), xmax = max(xmax))
 
-    # we define range.min, range.max as the ranges of the drawn genes, considering that they are cut off at range.start, range.end
-    annotation$range.start = range.start
-    annotation$range.end = range.end
-    annotation$range.min = apply(annotation[,c("xmin", "range.start")],1,max)
+    # we define range.min, range.max as the ranges of the drawn genes, considering that they are cut off at range start, end
+
+    annotation$range.start = range.pos[1]
+    annotation$range.end = range.pos[2]
+    annotation$range.min = apply(annotation[,c("xmin", "range.start")],1,max)  # FYI, pmax/pmin is cleaner way to do this
     annotation$range.max = apply(annotation[,c("xmax", "range.end")],1,min)
 
     # label is positioned in middle of drawn region of gene
@@ -133,8 +104,8 @@ get.chrom.annotation.df = function(genes, range.start, range.end, dodge, height=
     return(annotation)
 }
 
-get.gene.exon.annotation.df = function(genes, exons, range.start, range.end, dodge) { 
-    annotation.df = get.chrom.annotation.df(genes, range.start, range.end, dodge, 0.1)  # last number is "thickness" of intron section 
+get.gene.exon.annotation.df = function(genes, exons, range.pos, dodge) { 
+    annotation.df = get.chrom.annotation.df(genes, range.pos, dodge, 0.1)  # last number is "thickness" of intron section 
     if (nrow(exons) != 0 & nrow(annotation.df) != 0) {
         # define position of exons so they line up with gene y positions
         exon_annotation = data.frame(xmin=exons$start, xmax=exons$end, label="", label_group=exons$name)
@@ -179,24 +150,24 @@ make.annotation.ggp = function(annotation, text.angle=0) {
 
 args = parse_args()
 
-exons = read.filtered.bed(args$exons.bed.fn, args$chrom, args$range.start, args$range.end)
-genes = read.filtered.bed(args$genes.bed.fn, args$chrom, args$range.start, args$range.end)
+genes = read.BED(args$genes.bed.fn)
+genes = filter.BED(genes, args$range.chr, args$range.pos)
+
+exons = read.BED(args$exons.bed.fn)
+exons = filter.BED(exons, args$range.chr, args$range.pos)
 
 # all genes and exons within range will be drawn
-annotation.df = get.gene.exon.annotation.df(genes, exons, args$range.start, args$range.end, args$dodge)
+annotation.df = get.gene.exon.annotation.df(genes, exons, args$range.pos, args$dodge)
 
 # If there is no annotation we simply don't write a file and let assembly deal with this
 if (nrow(annotation.df)==0) {
     #annotation.ggp = rectGrob(gp = gpar(col = "white"))  # can't do this in make.a.ggp because coord_flip dies on a rectGrob
-    cat(paste("No annotation after filtering.  Not saving",args$ggp.fn,"Downstream workflow will ignore annotation.\n"))
+    cat(paste("No annotation after filtering.  Not saving",args$out.ggp,"Downstream workflow will ignore annotation.\n"))
     q()
 }
 
 text.angle = if (args$label.flip) -90 else 0
-annotation.ggp = make.annotation.ggp(annotation.df, text.angle)
+ggp = make.annotation.ggp(annotation.df, text.angle)
 
-# now save annotation.ggp to file
-# http://stat.ethz.ch/R-manual/R-devel/library/base/html/save.html
-cat(paste("Saving to GPP file", args$ggp.fn, "\n"))
-saveRDS(annotation.ggp, file=args$ggp.fn)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
-
+# now save ggp to file
+write.GGP(ggp, args$out.ggp, args$pdf.out)

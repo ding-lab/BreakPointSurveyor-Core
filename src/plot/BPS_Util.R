@@ -22,7 +22,7 @@ get_bool_arg = function(args, flag) {
     return(val)
 }
 
-# Parse chromosome region string.  Accepted formats: "-c 14", "-c 14:12345-12456"
+# Parse chromosome region string.  Accepted formats: "14", "14:12345-12456"
 # returns list ['range.pos', 'range.chr'], where range.pos is a list (e.g., [12345, 12456]) 
 # and range.chr is a string ("14").  range.pos is NULL if not specified.
 parse.range.str = function(chrarg) {
@@ -35,8 +35,7 @@ parse.range.str = function(chrarg) {
             range.pos<-as.numeric(strsplit(chrlist[2], "-")[[1]])
         }
     } else {
-        print("Error: Must specify chromosome (-c).  Quitting")
-        q()
+        stop("Error: Must specify range.  Quitting")
     }
 
     return( list('range.pos'=range.pos, 'range.chr'=range.chr) )
@@ -115,6 +114,29 @@ filter.BPR = function(data, range.chr.A, range.pos.A, range.chr.B, range.pos.B) 
     return(data)
 }
 
+# be able to read bed files of arbitrary number of columns.  Columns named as described here:
+#   http://bedtools.readthedocs.org/en/latest/content/general-usage.html
+read.BED = function(bed.fn) {
+    # this complains if file has zero lines
+    data = read.csv(bed.fn, header = FALSE, sep = "\t", row.names=NULL)
+    names(data)[1:3] = c("chrom", "start", "end")
+    if (length(names(data)) > 3) names(data)[4] = "name" 
+    if (length(names(data)) > 4) names(data)[5] = "score" 
+    if (length(names(data)) > 5) names(data)[6] = "strand" 
+    return(data)
+}
+
+filter.BED = function(data, range.chr, range.pos) {
+    # keep rows which overlap with range of interest.
+    if (!is.null(range.chr)) data = data[data$chrom %in% range.chr,]
+    if (!is.null(range.pos)) {
+        in.range = is.overlapping(data$start, data$end, range.pos[1], range.pos[2])
+        data = data[in.range,]
+    } 
+    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
+    data = data[complete.cases(data),]
+    return(data)
+}
 
 # save ggp object to either GGP binary representation or PDF file.
 # if writing to PDF (pdf.out=TRUE), append ".pdf" to filename out.fn if it does not already have that extension
