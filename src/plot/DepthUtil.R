@@ -61,7 +61,7 @@ calculateCBS = function(depth, do.log) {
     if (do.log) {
         CNA.object = CNA( genomdat = log2(depth$depth/median(depth$depth,na.rm=T)), chrom = depth$chrom, maploc = depth$pos)
     } else {
-        CNA.object = CNA( genomdat = depth$depth, chrom = depth$chrom, maploc = depth$pos)
+        CNA.object = CNA( genomdat = depth$norm.depth, chrom = depth$chrom, maploc = depth$pos)
     }
     CNA.object = smooth.CNA(CNA.object)  
     d = segment(CNA.object, verbose=0, min.width=5, undo.splits="sdundo", undo.SD=3, alpha=1e-5)  # Smaller alpha makes fewer segments
