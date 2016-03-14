@@ -125,21 +125,15 @@ def makeBreakpointClusters(breakpoints, radius):
     clusters = Clusters()
     for bp_i in range(0, breakpoints.getBPCount()):  # bp_i loops over all breakpoints
         currentCluster = clusters.getCid(bp_i)
-#        print "bp_i = ", bp_i, breakpoints.BP(bp_i), ": cluster = ", currentCluster
         if currentCluster is None:
             currentCluster = clusters.newCluster(bp_i)
-#            print "    Added cluster", currentCluster
         for bp_j in range(bp_i+1, breakpoints.getBPCount()):  # bp_j loops over i..N breakpoints
-#            print "- bp_j = ", bp_j, breakpoints.BP(bp_j)
             if breakpoints.overlapping(bp_i, bp_j, radius):
                 cluster_j = clusters.getCid(bp_j)
-#                print "- overlap found.  bp_j in cluster", cluster_j
                 if cluster_j is not None and cluster_j is not currentCluster:
-#                    print "- merging clusters", currentCluster, cluster_j
                     clusters.merge(currentCluster, cluster_j)
                 else:
                     if cluster_j is not currentCluster:
-#                        print "- adding bp_j to currentCluster", currentCluster
                         clusters.add(currentCluster, bp_j)
     return clusters
         
@@ -150,9 +144,9 @@ def main():
     usage_text = """usage: %prog [options] BPC.dat BPR.dat ...
 Cluster Breakpoints into Breakpoint regions.
 
-BPC file is read with breakpoint coordinates.
-For a given chromosome pair, all breakpoints within a given distance of each other
-are collected into individual clusters.  Such clusters then define the regions of
+BPC file is read with breakpoint coordinates.  For a given chromosome pair, all
+breakpoints within a given distance of each other along both chromosomes are
+collected into collective clusters.  Such clusters then define the regions of
 interest as written to a BPR file."""
 
     parser = OptionParser(usage_text, version="$Revision: 1.2 $")
@@ -161,6 +155,7 @@ interest as written to a BPR file."""
     parser.add_option("-B", dest="chromB", default=None, help="Second chromosome of interest")
     parser.add_option("-n", dest="noSwap", action="store_true", help="Only evaluate (chromA,chromB) and ignore (chromB,chromA)")
     parser.add_option("-H", dest="header", action="store_true", help="Print BPR header")
+    parser.add_option("-d", dest="debug", action="store_true", help="Print cluster details as comments in output file")
 
     (options, params) = parser.parse_args()
 
@@ -179,13 +174,12 @@ interest as written to a BPR file."""
         o = open(outfn, "w")
 
     breakpoints = Breakpoints(f, options.chromA, options.chromB, options.noSwap) 
-#    print breakpoints
     clusters = makeBreakpointClusters(breakpoints, int(options.radius))
-#    print clusters
 
-    o.write( "# Number breakpoints: " + str(breakpoints.getBPCount()) + "\n")
-    o.write( "# Cluster radius: " + options.radius + "\n" )
-    o.write( "# Cluster dump: "+ str(clusters) + "\n" )
+    if (options.debug):
+        o.write( "# Number breakpoints: " + str(breakpoints.getBPCount()) + "\n")
+        o.write( "# Cluster radius: " + options.radius + "\n" )
+        o.write( "# Cluster dump: "+ str(clusters) + "\n" )
 
     clusters.writeBPR(o, breakpoints, options.header)
     f.close()

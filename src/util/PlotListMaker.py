@@ -87,7 +87,11 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
 #  * range.a.start, range.a.end (indicates region to plot; calculated as event.start - context, event.end + context, respectively)
 #  * chrom.b, (second chromosome of coordiante pair)
 #  * event.b.start, event.b.end, range.b.start, range.b.end 
-        event_name = ".".join( (barcode, suffix.next(), "_".join( ("chr", chromA, chromB) )) )
+        try:
+            event_name = ".".join( (barcode, suffix.next(), "_".join( ("chr", chromA, chromB) )) )
+        except StopIteration: # Catch StopIteration, require suffix_length to be increased
+            sys.stderr.write("Event name looped.  Increase suffix_length (-s)\n")
+            sys.exit()
 
         rA_start, rA_end = fai.crop(chromA, posA_start - context, posA_end + context)
         rB_start, rB_end = fai.crop(chromB, posB_start - context, posB_end + context)
