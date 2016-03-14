@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointCruncher.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] 
+# Usage: Rscript BreakpointRenderer.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] 
 #                [-a alpha][-c color][-f fill][-s shape][-t linetype][-z size] BP.fn breakpoint.ggp
 #
 #   Create or append various plots to breakpoint coordinate GGP file.  Chrom A coordinates are plotted

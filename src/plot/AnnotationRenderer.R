@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript AnnotationCruncher.R [-v] [-P] [-V] [-A range] [-e exons.bed] [-D dodge] [-B] genes.bed out.ggp
+# Usage: Rscript AnnotationRenderer.R [-v] [-P] [-V] [-A range] [-e exons.bed] [-D dodge] [-B] genes.bed out.ggp
 #
 # Create gene annotation GGP files with optional exon definitions for each gene.  
 #

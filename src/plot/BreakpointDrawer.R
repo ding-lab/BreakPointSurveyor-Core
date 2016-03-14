@@ -294,7 +294,7 @@ if (args$no.label & !is.null(histogram.ggp)) {
 }
 
 # commas on genomic positions.  Implmement this somewhere
-# from ~/Data/TCGA_SARC/ICGC/BreakpointSurveyor/E_Breakpoint/src/BreakpointCruncher.R
+# from ~/Data/TCGA_SARC/ICGC/BreakpointSurveyor/E_Breakpoint/src/BreakpointRenderer.R
 #    if (commas) {
 #        p = p + scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma)
 #    }

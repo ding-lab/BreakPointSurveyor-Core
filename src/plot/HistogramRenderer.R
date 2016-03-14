@@ -1,4 +1,4 @@
-# Usage: Rscript HistogramCruncher.R [-v] [-n num.reads] [-l read.length] [-N nbin] [-m hist.max] [-d] [-P]
+# Usage: Rscript HistogramRenderer.R [-v] [-n num.reads] [-l read.length] [-N nbin] [-m hist.max] [-d] [-P]
 #       depth.A.fn depth.B.fn out.ggp
 #
 # create a histogram of read depth (or estimated copy number) for chrom A and B

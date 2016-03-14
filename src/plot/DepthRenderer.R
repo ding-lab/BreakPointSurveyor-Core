@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript DepthCruncher.R [-v] [-P] [-A range] [-F] [-G fn.ggp] [-p plot.type] 
+# Usage: Rscript DepthRenderer.R [-v] [-P] [-A range] [-F] [-G fn.ggp] [-p plot.type] 
 #                [-u num.reads] [-l read.length] [-m chrom] [-L] 
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
@@ -192,7 +192,7 @@ render.depth = function(ggp, depth, ylabel, alpha=NULL, color=NULL, shape=NULL, 
 # if alpha, shape, size, color are defined, their values are passed to corresponding arguments.  
 # depth: "chrom", "pos", "depth", "norm.depth"
 
-    # see BreakpointCruncher.R:render.point() for details of how geom_point call constructed
+    # see BreakpointRenderer.R:render.point() for details of how geom_point call constructed
     args = list()   # first collect all static arguments, then add aes and data as arguments
     aes.args = list(x="pos", y="norm.depth")
     if (!is.null(alpha)) args$alpha = alpha
