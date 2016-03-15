@@ -19,6 +19,9 @@
 # -d, -D: make alignment marks on chrom A, B resp.  Alignment marks are test lines drawn on various panels to validate that
 #         they are aligned correctly.  argument marks.A, marks.B are comma-separated lists genomic position of marks,
 #         (e.g., "1000,2000,3000")
+# -t: title of plot
+# -c, -C: chromosome name (e.g. "11" or "X")
+# -h, -w: height, width of PDF output in inches
 #
 # Layout: 2D breakpoint plot in upper left panel, with Chrom A/B details below/to the left of it, respectively.  Optional
 # histogram in lower left.  Chrom details consist of depth and optional annotation.
