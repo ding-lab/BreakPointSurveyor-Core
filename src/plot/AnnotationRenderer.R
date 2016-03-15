@@ -19,7 +19,7 @@
 #         Filtering data may be prevented with -F.  
 # -D annotation dodge parameter.  Annotations will fall into this many lines.
 # -e exons.bed.  BED file which indicates regions of exons.  Similar to genes.bed.
-# -B: rotate text -90 degrees.  Useful for annotating chrom B
+# -B: Annotate for chrom B.  This rotates text and reverses X scale.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 
 options("width"=180) # useful for debugging
@@ -50,7 +50,7 @@ parse_args = function() {
     range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.chr, start=range.pos[1], start=range.pos[2]
     exons.bed.fn = get_val_arg(args, "-e", NULL)
     dodge = get_val_arg(args, "-D", "4")
-    label.flip = get_bool_arg(args, "-B")
+    is.B = get_bool_arg(args, "-B")
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.ggp = args[length(args)];             args = args[-length(args)]
@@ -58,7 +58,7 @@ parse_args = function() {
 
     val = list( 'range.pos'=range.A$range.pos, 'range.chr'=range.A$range.chr,  'verbose' = verbose, 
             'exons.bed.fn' = exons.bed.fn, 'dodge' = as.numeric(dodge), 'pdf.out'=pdf.out,
-            'out.ggp' = out.ggp, 'genes.bed.fn' = genes.bed.fn, 'label.flip'=label.flip)
+            'out.ggp' = out.ggp, 'genes.bed.fn' = genes.bed.fn, 'is.B'=is.B)
     if (val$verbose) { print(val) }
 
     return (val)
@@ -130,22 +130,27 @@ get.gene.exon.annotation.df = function(genes, exons, range.pos, dodge) {
 }
 
 # Create GGP object from annotation data frame. 
-# text.angle is the angle of the annotation text next to the genes
-make.annotation.ggp = function(annotation, text.angle=0) {    
-    p = ggplot() 
+# is.B indicats that this is a panel which will be rotated when assembled in final plot.  This implies,
+#   * text angle is rotated 90 degrees
+#   * X axis is reversed
+make.annotation.ggp = function(annotation, is.B) {    
+    # text.angle is the angle of the annotation text next to the genes
+    text.angle = if (is.B) -90 else 0
 
-    # note that cropped annotations are not implemented
-    p = p + geom_rect(data=annotation, mapping=aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=label_group, color=label_group), alpha=0.1) 
+    ggp = ggplot() 
+    ggp = ggp + geom_rect(data=annotation, mapping=aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=label_group, color=label_group), alpha=0.1) 
 
     vjust=-0.2
-    p = p + geom_text(data=annotation, aes(x=labelx, y=labely, label=label, color=label_group), size=3, vjust=vjust, angle=text.angle) 
-    p = p + theme(legend.position="none")
-    p = p + theme(axis.ticks = element_blank(), axis.text.y = element_blank(), axis.text.x = element_blank(), 
+    ggp = ggp + geom_text(data=annotation, aes(x=labelx, y=labely, label=label, color=label_group), size=3, vjust=vjust, angle=text.angle) 
+    ggp = ggp + theme(legend.position="none")
+    ggp = ggp + theme(axis.ticks = element_blank(), axis.text.y = element_blank(), axis.text.x = element_blank(), 
          plot.background = element_blank(), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),
          panel.background = element_blank())
-    p = p + xlab(NULL) + ylab(NULL) 
-    p = p + ylim(min(annotation$ymin),max(annotation$ymax)+1)  # make enough room for the labels.
-    return(p)
+    ggp = ggp + xlab(NULL) + ylab(NULL) 
+    ggp = ggp + ylim(min(annotation$ymin),max(annotation$ymax)+1)  # make enough room for the labels.
+    if (is.B)
+        ggp = ggp + scale_x_reverse()  # make x position increase in the downward direction for B panel only
+    return(ggp)
 }
 
 args = parse_args()
@@ -166,8 +171,7 @@ if (nrow(annotation.df)==0) {
     q()
 }
 
-text.angle = if (args$label.flip) -90 else 0
-ggp = make.annotation.ggp(annotation.df, text.angle)
+ggp = make.annotation.ggp(annotation.df, args$is.B)
 
 # now save ggp to file
 write.GGP(ggp, args$out.ggp, args$pdf.out)

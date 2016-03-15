@@ -3,7 +3,7 @@
 # The Genome Institute
 #
 # Usage: Rscript DepthRenderer.R [-v] [-P] [-A range] [-F] [-G fn.ggp] [-p plot.type] 
-#                [-u num.reads] [-l read.length] [-m chrom] [-L] 
+#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B]
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
 #   These values of plot.type are supported:
@@ -37,6 +37,7 @@
 # -p: plot.type: one of "depth", "point", or "region"; these require depth, BPC, BPR data files, resp.  "depth" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 # -G fn.ggp: Append graphics to given ggp file, rather than creating new ggp file.
+# -B: Annotate for chrom B.  This rotates text and reverses X scale.
 #
 # The following constant attributes can be defined:
 #   -a alpha
@@ -112,6 +113,7 @@ parse_args = function() {
     in.ggp = get_val_arg(args, "-G", NULL)
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
+    is.B = get_bool_arg(args, "-B")
 
     alpha = get_val_arg(args, "-a", NULL)
     color = get_val_arg(args, "-c", NULL)
@@ -125,7 +127,7 @@ parse_args = function() {
     data.fn = args[length(args)];      args = args[-length(args)]
 
     val = list( 
-        'range.pos'=range.A$range.pos, 'range.chr'=range.A$range.chr,  
+        'range.pos'=range.A$range.pos, 'range.chr'=range.A$range.chr, 'is.B'=is.B, 
         'verbose' = verbose, 'plot.log.depth' = plot.log.depth, 'num.reads' = num.reads,
         'read.length' = read.length, 'skip.data.filter' = skip.data.filter, 'in.ggp' = in.ggp,
         'plot.type' = plot.type, 'pdf.out' = pdf.out, 'alpha' = alpha, 'color' = color, 'fill' = fill,
@@ -136,46 +138,9 @@ parse_args = function() {
     return (val)
 }
 
-
-# legend:
-# light gray circles: read depth, alpha =1, size=1
-# horizontal red lines: CBS - color="#E41A1C", alpha=1
-# light gray vertical bars - pindel - fill="gray50", color="gray50", size=0.25, alpha=0.5)
-# navy blue circles - discordant reads - color="#377EB8", size=2.5, alpha=0.25,
-# multi-colored vertical bars - HHRP - fill=g, color=g), size=0.25, alpha=0.25
-# green dots - rSBP - color="#4DAF4A", alpha=0.5
-#           - can also be a vertical line
-
-old.render.depth = function(depth, BPC.df, pindel, CBS, HHRP, rSBP) {
-    do.discordant = (!is.null(BPC.df)) && (nrow(BPC.df) > 0)
-    do.pindel = !is.null(pindel) && nrow(pindel) > 0
-    do.CBS = (!is.null(CBS)) && (nrow(CBS) > 0)
-    do.HHRP = !is.null(HHRP) && nrow(HHRP) > 0
-    do.rSBP = !is.null(rSBP) && nrow(rSBP) > 0
-
-    # this is to make discordant scatter dots look reasonable.  Questionable whether this is the best way to go tho
-    max.y = max(depth$plot.depth)
-    BPC.df$midpt = max.y/2
-
-    p = ggplot()
-    # depth can be one of depth, copy number, or log normalized depth.  depth$plot.depth unifies them, and we label the y axes accordingly
-    p = p + geom_point(data=depth, aes(x=pos, y=plot.depth), alpha=1.0, size=1) 
-    if (do.CBS) 
-        p = p + geom_segment(data=CBS, aes(x=start, xend=end, y=seg.mean, yend=seg.mean, group=g), color="#E41A1C", alpha=1) 
-    if (do.pindel) 
-        p = p + geom_rect(data=pindel, aes(xmin=start, xmax=end, ymin=-Inf, ymax=Inf), fill="gray50", color="gray50", size=0.25, alpha=0.5)
-    if (do.discordant)
-        p = p + geom_point(data=BPC.df, aes(x=pos, y=midpt), color="#377EB8", size=2.5, alpha=0.25, position = position_jitter(height = max.y/2, width=0))
-    if (do.HHRP)
-        p = p + geom_rect(data=HHRP, aes(xmin=start, xmax=end, ymin=-Inf, ymax=Inf, fill=g, color=g), size=0.25, alpha=0.25)
-    if (do.rSBP)
-        p = p + geom_vline(data=rSBP, aes(xintercept=pos, y=0), color="#4DAF4A", alpha=0.5) #, size=4, position = position_jitter(height = 1, width=0))
-        #p = p + geom_point(data=rSBP, aes(x=pos, y=0), color="green4", alpha=0.5, size=4, position = position_jitter(height = 1, width=0))
-
-    return(p)
-}
-
-make.depth.GGP = function(range.pos = NULL) {
+# is.B indicats that this is a panel which will be rotated when assembled in final plot.  
+#   * X axis is reversed
+make.depth.GGP = function(range.pos = NULL, is.B = FALSE) {
     # define basic properties of Depth GGP object.
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
     if (!is.null(range.pos)) {
@@ -183,6 +148,10 @@ make.depth.GGP = function(range.pos = NULL) {
     }
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
+
+    if (is.B) {
+        ggp = ggp + scale_x_reverse()  # make x position increase in the downward direction
+    }
     # In general, legends will be modified downstream of ggp creation.
     # ggp = ggp + theme(legend.position="none")  
     return(ggp)
@@ -254,7 +223,7 @@ render.CBS = function(ggp, CBS, alpha=NULL, color=NULL, linetype=NULL, size=NULL
 args = parse_args()
 
 if (is.null(args$in.ggp)) {
-    ggp = make.depth.GGP(args$range.pos)
+    ggp = make.depth.GGP(args$range.pos, args$is.B)
 } else {
     ggp = readRDS(args$in.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
 }

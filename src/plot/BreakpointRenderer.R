@@ -130,7 +130,7 @@ make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
 
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
-
+    ggp = ggp + scale_y_reverse()  # make y position increase in the downward direction
 
     # In general, legends will be modified downstream of ggp creation.
     # ggp = ggp + theme(legend.position="none")  
