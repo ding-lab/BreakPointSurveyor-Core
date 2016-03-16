@@ -62,22 +62,33 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
     # a generator and http://stackoverflow.com/questions/2156892/python-how-can-i-increment-a-char
     suffix=(''.join(i) for i in itertools.product(string.ascii_uppercase, repeat=int(options.suffix_length)))  
 
-    if not options.skip_header:
+    if options.write_header:
         o.write('\t'.join( ("barcode", "name", "chrom.A", "event.A.start", "event.A.end", "range.A.start", "range.A.end",
                                                    "chrom.B", "event.B.start", "event.B.end", "range.B.start", "range.B.end") ))
         o.write('\n')
     for line in f:
         if line[0] == "#": continue
         t = line.rstrip().split("\t")
+        if t[0] == "chromA": continue  # header
 
-#     BPC: chromA, posA, chromB, posB
-#     BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end
+#     BPC: chromA, posA, chromB, posB, [attrib]
+#     BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end, [attrib]
         if isBPC:
-            chromA, posA_start, chromB, posB_start = t
+            if len(t) == 4:
+                chromA, posA_start, chromB, posB_start = t
+            elif len(t) == 5:
+                chromA, posA_start, chromB, posB_start, attrib = t
+            else:
+                raise Exception("Unknown format of BPC input file")
             posA_start, posB_start = map(int(posA_start, posB_start))
             posA_end, posB_end = posA_start + 1, posB_start+1
         else:
-            chromA, posA_start, posA_end, chromB, posB_start, posB_end = t
+            if len(t) == 6:
+                chromA, posA_start, posA_end, chromB, posB_start, posB_end = t
+            elif len(t) == 7:
+                chromA, posA_start, posA_end, chromB, posB_start, posB_end, attrib = t
+            else:
+                raise Exception("Unknown format of BPR input file")
             posA_start, posA_end, posB_start, posB_end = map(int, (posA_start, posA_end, posB_start, posB_end))
 
 #  * event.name (unique)
@@ -117,7 +128,7 @@ def main():
     parser.add_option("-r", dest="reference_fai", default=None, help="Reference FAI file listing chrom lengths")
     parser.add_option("-n", dest="barcode", default="", help="Sample barcode or other identifier")
     parser.add_option("-s", dest="suffix_length", default="2", help="Length of letter code (2 is aa, ab, ac, ...)")
-    parser.add_option("-H", dest="skip_header", action="store_true", help="Skip column headers in output")
+    parser.add_option("-H", dest="write_header", action="store_true", help="Write column headers in output")
 
     (options, params) = parser.parse_args()
 

@@ -7,8 +7,9 @@
 # For a given chromosome pair, all breakpoints within a given distance of each other
 # are collected into individual clusters.  Such clusters then define the regions of
 # interest as written to a BPR file.
+# Implementation details illustrated in BreakpointSurveyor/doc/BPS_clustering.pdf
 
-# From /gscuser/mwyczalk/projects/TCGA_SARC/ICGC/A_AnalyzeVCF/README, details on data formats:
+# Details on data formats:
 #     In general, we represent breakpoints as a coordinate given by a pair of chrom/pos (Breakpoint Coordinates, or BPC).
 #     Alternatively, we may consider a breakpoint region (BPR), which has a pair of chrom/pos.start/pos.end values.
 #     Breakpoints with precise positions (e.g., discordant pair positions) will be represented by the former,
@@ -17,14 +18,14 @@
 #     Each breakpoint coordinate or region is represented just once, with chromA < chromB, or posA < posB if chromA==chromB
 # 
 #     Both are represented in a TSV file,
-#     BPC: chromA, posA, chromB, posB
-#     BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end
+#       BPC: chromA, posA, chromB, posB, [attribute]
+#       BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end, [attribute]
+#     Both datatypes have optional attribute column
 
 import sys
 
 class Breakpoints:
     """Read, filter, and store breakpoint data from BPC file."""
-
     # internally, breakpoints are represented as tuples, (chromA, posA, chromB, posB)
     # where chromA, chromB are the chromosomes of interest as defined by user
     # the index into list of breakpoints is the bp_id and uniquely identifies a breakpoint
@@ -66,7 +67,7 @@ class Breakpoints:
     def getBPCount(self): 
         return len(self.breakpoints)
 
-    def getClusterRange(self, c):
+    def getBPRange(self, c):
         "Given list of breakpoints ids c, return range start and stop for chrom A and B"
         startA, startB, endA, endB, chromA, chromB = float("inf"), float("inf"), float("-inf"), float("-inf"), None, None
         for bp in c:
@@ -111,17 +112,23 @@ class Clusters:
         del self.clusters[cidB]
 
 
-    def writeBPR(self, o, bp, header=False):
+    def writeBPR(self, o, bp, header=False, countBP=False):
         "Write contents of this object in BPR format"
         # BPR object has columns, chromA, posA.start, posA.end, chromB, posB.start, posB.end
         if header: 
-            o.write('\t'.join( ("chromA", "startA", "endA", "chromB", "startB", "endB") )+"\n")
-        for k,c in self.clusters.iteritems():
-            o.write('\t'.join( map(str, bp.getClusterRange(c)) )+"\n")
+            if countBP:
+                o.write('\t'.join( ("chromA", "startA", "endA", "chromB", "startB", "endB", "breakpointCount") )+"\n")
+            else:
+                o.write('\t'.join( ("chromA", "startA", "endA", "chromB", "startB", "endB") )+"\n")
+        for k,c in self.clusters.iteritems():  # c is a list of breakpoint ids
+            if countBP:
+                o.write('\t'.join( map(str, bp.getBPRange(c) + (len(c),) ) )+"\n")
+            else:
+                o.write('\t'.join( map(str, bp.getBPRange(c)) )+"\n")
 
 def makeBreakpointClusters(breakpoints, radius):
     """Merge into clusters those breakpoints which are within radius distance of each other.  Return clusters object."""
-    # see notes 12/9/15 for algorithm details
+    # see notes BreakpointSurveyor/doc/BPS_clustering.pdf for algorithm details
     clusters = Clusters()
     for bp_i in range(0, breakpoints.getBPCount()):  # bp_i loops over all breakpoints
         currentCluster = clusters.getCid(bp_i)
@@ -156,6 +163,7 @@ interest as written to a BPR file."""
     parser.add_option("-n", dest="noSwap", action="store_true", help="Only evaluate (chromA,chromB) and ignore (chromB,chromA)")
     parser.add_option("-H", dest="header", action="store_true", help="Print BPR header")
     parser.add_option("-d", dest="debug", action="store_true", help="Print cluster details as comments in output file")
+    parser.add_option("-c", dest="countBP", action="store_true", help="Print count of breakpoints per cluster as final BPR column")
 
     (options, params) = parser.parse_args()
 
@@ -181,7 +189,7 @@ interest as written to a BPR file."""
         o.write( "# Cluster radius: " + options.radius + "\n" )
         o.write( "# Cluster dump: "+ str(clusters) + "\n" )
 
-    clusters.writeBPR(o, breakpoints, options.header)
+    clusters.writeBPR(o, breakpoints, options.header, options.countBP)
     f.close()
     o.close()
 
