@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointRenderer.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] 
+# Usage: Rscript BreakpointRenderer.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] [-M]
 #                [-a alpha][-c color][-f fill][-s shape][-t linetype][-z size] BP.fn breakpoint.ggp
 #
 #   Create or append various plots to breakpoint coordinate GGP file.  Chrom A coordinates are plotted
@@ -30,6 +30,7 @@
 # -F: Do not filter data.  See above.
 # -p: plot.type: one of "point", "region", "segment"; these require BPC, BPR, BPR data files, resp.  "point" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
+# -M: format genomic coordinates without commas 
 #
 # The following constant attributes can be defined:
 #   -a alpha
@@ -54,6 +55,7 @@
 
 options("width"=180) # useful for debugging
 library("bitops")
+library(scales)    # necessary for commas
 suppressPackageStartupMessages(library("ggplot2"))
 
 # these control printing of genomic position labels
@@ -86,6 +88,7 @@ parse_args = function() {
     in.ggp = get_val_arg(args, "-G", NULL)
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
+    no.commas = get_bool_arg(args, "-M")
 
     alpha = get_val_arg(args, "-a", NULL)
     color = get_val_arg(args, "-c", NULL)
@@ -103,14 +106,14 @@ parse_args = function() {
             'range.pos.B'=range.B$range.pos, 'range.chr.B'=range.B$range.chr, 
             'skip.data.filter'=skip.data.filter, 'in.ggp'=in.ggp, 'plot.type'=plot.type,
             'alpha'= alpha, 'color'= color, 'fill'= fill, 'shape'= shape, 'size'= size, 'linetype'=linetype,
-            'out.ggp'=out.ggp, 'data.fn' = data.fn, 'pdf.out'=pdf.out
+            'out.ggp'=out.ggp, 'data.fn' = data.fn, 'pdf.out'=pdf.out, 'no.commas'=no.commas
             )
     if (val$verbose) { print(val) }
 
     return (val)
 }
 
-make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
+make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL, no.commas=FALSE) {
     # define basic properties of Breakpoint Coordinates GGP object.
     # TODO: see if this works.  It may be necessary to set some things at the end of plotting?
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
@@ -130,11 +133,11 @@ make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL) {
 
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
-    ggp = ggp + scale_y_reverse()  # make y position increase in the downward direction
 
-    # In general, legends will be modified downstream of ggp creation.
-    # ggp = ggp + theme(legend.position="none")  
-    # ggp = ggp + scale_shape(guide=FALSE)  # get rid of shape legend but keep others
+    labels = if (no.commas) waiver() else comma
+    ggp = ggp + scale_y_continuous(labels=labels, trans=reverse_trans())  # make y position increase in the downward direction
+    ggp = ggp + scale_x_continuous(labels=labels)  
+
     return(ggp)
 }
 
@@ -214,7 +217,7 @@ render.segment = function(ggp, BPR, color=NA, alpha=NA, size=NA, linetype=NA) {
 args = parse_args()
 
 if (is.null(args$in.ggp)) {
-    ggp = make.breakpoint.GGP(args$range.pos.A, args$range.pos.B)
+    ggp = make.breakpoint.GGP(args$range.pos.A, args$range.pos.B, args$no.commas)
 } else {
     ggp = readRDS(args$in.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
 }

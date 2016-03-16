@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointSurveyAssembler.R [-v] [-a annotation.A.ggp] [-A annotation.B.ggp] [-H histogram.ggp] [-m] [-N]
+# Usage: Rscript BreakpointSurveyAssembler.R [-v] [-a annotation.A.ggp] [-A annotation.B.ggp] [-H histogram.ggp] [-N]
 #               [-t title] [-h height] [-w width] [-c chrom.A] [-C chrom.B] [-L] [-b] [-d marks.A] [-D marks.B] 
 #               breakpoint.ggp depth.A.ggp depth.B.ggp out.pdf
 #
@@ -15,7 +15,6 @@
 # -N: Do not align the panels, keeping all ranges and layout as generated (for debugging)
 # -L: do not print axis labels
 # -b: make big axis text
-# -m: format genomic coordinates with commas 
 # -d, -D: make alignment marks on chrom A, B resp.  Alignment marks are test lines drawn on various panels to validate that
 #         they are aligned correctly.  argument marks.A, marks.B are comma-separated lists genomic position of marks,
 #         (e.g., "1000,2000,3000")
@@ -31,7 +30,6 @@ suppressPackageStartupMessages(library("ggplot2"))
 library('grid')
 library('gridExtra', quietly=TRUE)
 library('gridBase', quietly=TRUE)
-library(scales)    # necessary for commas
 
 source_relative = function(source.fn) {
     # http://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
@@ -60,7 +58,6 @@ parse_args = function() {
     big.font = get_bool_arg(args, "-b")
     chrom.A = get_val_arg(args, "-c", "A")
     chrom.B = get_val_arg(args, "-C", "B")
-    commas = get_bool_arg(args, "-m")
     no.align = get_bool_arg(args, "-N")
 
     marks.A = get_val_arg(args, "-d", NULL)
@@ -81,7 +78,7 @@ parse_args = function() {
     val = list('verbose'=verbose, 'breakpoints.fn'= breakpoints.fn, 'histogram.fn'= histogram.fn, 'depth.A.fn'= depth.A.fn,
                'depth.B.fn'= depth.B.fn, 'out.fn'= out.fn, 'annotation.A.fn'=annotation.A.fn, 'no.align'=no.align,
                'annotation.B.fn'=annotation.B.fn, 'title'=title, 'height'=height, 'width'=width, 'marks.A'=marks.A, 'marks.B'=marks.B,
-               'no.label'=no.label, 'big.font'=big.font, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B, 'commas'=commas)
+               'no.label'=no.label, 'big.font'=big.font, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B)
     if (val$verbose) { print(val) }
 
     return (val)
@@ -307,12 +304,6 @@ annotation.B.ggp = annotation.B.ggp + no.margin
 if (args$no.label & !is.null(histogram.ggp)) {
     histogram.ggp = histogram.ggp + theme(axis.title = element_blank(), legend.position="none")
 }
-
-# commas on genomic positions.  Implmement this somewhere
-# from ~/Data/TCGA_SARC/ICGC/BreakpointSurveyor/E_Breakpoint/src/BreakpointRenderer.R
-#    if (commas) {
-#        p = p + scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma)
-#    }
 
 if (!is.null(args$marks.A)) {
     depth.A.ggp = add.alignment.marks(depth.A.ggp, args$marks.A)

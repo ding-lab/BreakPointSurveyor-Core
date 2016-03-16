@@ -3,7 +3,7 @@
 # The Genome Institute
 #
 # Usage: Rscript DepthRenderer.R [-v] [-P] [-A range] [-F] [-G fn.ggp] [-p plot.type] 
-#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B]
+#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-M]
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
 #   These values of plot.type are supported:
@@ -38,6 +38,7 @@
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 # -G fn.ggp: Append graphics to given ggp file, rather than creating new ggp file.
 # -B: Annotate for chrom B.  This rotates text and reverses X scale.
+# -M: format genomic coordinates without commas 
 #
 # The following constant attributes can be defined:
 #   -a alpha
@@ -76,6 +77,7 @@
 suppressPackageStartupMessages(library("ggplot2"))
 options("width"=300) # change terminal window width
 library("reshape2")
+library(scales)    # necessary for commas
 
 
 set.seed(25)
@@ -114,6 +116,7 @@ parse_args = function() {
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
     is.B = get_bool_arg(args, "-B")
+    no.commas = get_bool_arg(args, "-M")
 
     alpha = get_val_arg(args, "-a", NULL)
     color = get_val_arg(args, "-c", NULL)
@@ -132,15 +135,15 @@ parse_args = function() {
         'read.length' = read.length, 'skip.data.filter' = skip.data.filter, 'in.ggp' = in.ggp,
         'plot.type' = plot.type, 'pdf.out' = pdf.out, 'alpha' = alpha, 'color' = color, 'fill' = fill,
         'shape' = shape, 'size' = size, 'linetype'=linetype, 'out.ggp' = out.ggp, 'data.fn' = data.fn,
-        'chrom.AB' = chrom.AB )
+        'chrom.AB' = chrom.AB, 'no.commas'=no.commas )
     if (val$verbose) { print(val) }
 
     return (val)
 }
 
-# is.B indicats that this is a panel which will be rotated when assembled in final plot.  
-#   * X axis is reversed
-make.depth.GGP = function(range.pos = NULL, is.B = FALSE) {
+# is.B indicates that this is a panel which will be rotated when assembled in final plot, and we reverse X axis
+# (making genomic position increase in downward direction in final plot)
+make.depth.GGP = function(range.pos = NULL, is.B = FALSE, no.commas=FALSE) {
     # define basic properties of Depth GGP object.
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
     if (!is.null(range.pos)) {
@@ -149,11 +152,10 @@ make.depth.GGP = function(range.pos = NULL, is.B = FALSE) {
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
 
-    if (is.B) {
-        ggp = ggp + scale_x_reverse()  # make x position increase in the downward direction
-    }
-    # In general, legends will be modified downstream of ggp creation.
-    # ggp = ggp + theme(legend.position="none")  
+    trans = if (is.B) reverse_trans() else "identity"
+    labels = if (no.commas) waiver() else comma
+    ggp = ggp + scale_x_continuous(labels=labels, trans=trans)  
+        
     return(ggp)
 }
 
@@ -223,7 +225,7 @@ render.CBS = function(ggp, CBS, alpha=NULL, color=NULL, linetype=NULL, size=NULL
 args = parse_args()
 
 if (is.null(args$in.ggp)) {
-    ggp = make.depth.GGP(args$range.pos, args$is.B)
+    ggp = make.depth.GGP(args$range.pos, args$is.B, args$no.commas)
 } else {
     ggp = readRDS(args$in.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
 }
