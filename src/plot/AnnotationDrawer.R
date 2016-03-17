@@ -75,14 +75,16 @@ parse_args = function() {
 # we make sure labels are unique (no genes listed twice) 
 
 # Creates annotation data frame which describes genes to annotate
+# If no annotation, zero-row data frame with a subset of columns returned
 get.chrom.annotation.df = function(genes, range.pos, dodge, height=1) {
     annotation = data.frame(xmin=genes$start, xmax=genes$end, label=genes$name, label_group=genes$name)
+    # if no annotation, return data frame now.
+    if (nrow(annotation) == 0) return(annotation)
     # in some cases a gene is listed twice (e.g. KRBOX1).  To keep gene names unique, collapse all duplicates
     # (identified by label and label_group) and keep the superset of positions
     annotation = ddply(annotation, c("label", "label_group"), summarise, xmin = min(xmin), xmax = max(xmax))
 
     # we define range.min, range.max as the ranges of the drawn genes, considering that they are cut off at range start, end
-
     annotation$range.start = range.pos[1]
     annotation$range.end = range.pos[2]
     annotation$range.min = apply(annotation[,c("xmin", "range.start")],1,max)  # FYI, pmax/pmin is cleaner way to do this
@@ -166,8 +168,7 @@ annotation.df = get.gene.exon.annotation.df(genes, exons, args$range.pos, args$d
 
 # If there is no annotation we simply don't write a file and let assembly deal with this
 if (nrow(annotation.df)==0) {
-    #annotation.ggp = rectGrob(gp = gpar(col = "white"))  # can't do this in make.a.ggp because coord_flip dies on a rectGrob
-    cat(paste("No annotation after filtering.  Not saving",args$out.ggp,"Downstream workflow will ignore annotation.\n"))
+    cat(paste("No annotation after filtering.  Not saving",args$out.ggp,"\n"))
     q()
 }
 
