@@ -2,13 +2,24 @@
 # Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
 #
 # Simple script to read GTF file line by line, test if criteria are met, and either print or
-# discard line.  Criteria for genes and exons, based on GTF columns:
-# Genes: feature = "gene" and source = "protein_coding"
-# Exons: feature = "exon" and source = "protein_coding"
+# discard line.  Criteria for genes and exons are based on GTF documentation and guesswork.
 #
-# In both cases we require the column "source" of the GTF to be protein_coding.  The contents of
-# this column (in Ensembl 75 at least) are is inconsistent with GTF documentation.  This is discussed
-# here: https://www.biostars.org/p/120306/ Our filtering works for Ensembl 75 GTF but may change in the future.  
+# The first version Ensembl this was developed for is Ensembl 75, which had an inconsistency between
+# the documentation and implementation (see https://www.biostars.org/p/120306/).  
+# We define the following ad hoc criteria to extract exon and gene position, name, and strand information:
+#   Ensembl 75:
+#       Genes: feature = "gene" and source = "protein_coding"
+#       Exons: feature = "exon" and source = "protein_coding"
+# By Ensembl 84 the formatting of the GTF file had changed, and the following criteria are being used
+# to extract gene and exon positions:
+#   Ensembl 84:
+#       Genes: feature = "gene"
+#       Exons: feature = "exon" and source = "ensembl"
+#       (the source criterion seems to limit to  
+# The version of Ensembl being used can be passed with the -e flag.  Discussion in the link above suggets that 
+# versions 77 and later have this issue fixed and can be parsed like ensembl 84.
+#
+# TODO: it would be useful to allow user to define criteria for gene/exon exclusion by passing arguments to this program.
 
 import sys
 import re
@@ -41,19 +52,37 @@ class GTFfeature:
         if mergeStrand: gene += ":"+self.strand
         return "\t".join([self.seqname, str(self.start-1), str(self.end), gene, self.score, self.strand, '\n'])
 
-class GTFexon(GTFfeature):
+class GTFexon75(GTFfeature):
     def isFeature(self):    # logically, isExon()
-        """We consider a line an exon if 1) feature = exon and 2) source = protein_coding"""
-        # TODO: this test changes with various releases.  Allow to be specified in a config file.
-        #if self.feature == "exon" and self.attributes['gene_biotype'] == "protein_coding": return True
+        """Evaluate feature from ensembl 75 GTF file.  Format of this version seems inconsistent with documentation, 
+        and our approach is ad hoc.
+        We consider a line an exon if 1) feature = exon and 2) source = protein_coding"""
         if self.feature == "exon" and self.source == "protein_coding": return True
         return False
 
-class GTFgene(GTFfeature):
+class GTFgene75(GTFfeature):
     def isFeature(self):  # logically, isGene()
-        """We consider a line a gene if 1) feature = gene and 2) source = protein_coding"""
-        #if self.feature == "gene" and self.attributes['gene_biotype'] == "protein_coding": return True
+        """Evaluate feature from ensembl 75 GTF file.  Format of this version seems inconsistent with documentation, 
+        and our approach is ad hoc.
+        We consider a line a gene if 1) feature = gene and 2) source = protein_coding"""
         if self.feature == "gene" and self.source == "protein_coding": return True
+        return False
+
+class GTFexon84(GTFfeature):
+    def isFeature(self):    
+        """Evaluate feature from ensembl 84 GTF file.  Other releases may also work.
+        We consider a line an exon if 1) feature = exon and 2) source = ensembl.
+        This is ad hoc. 
+        """
+        if self.feature == "exon" and self.source == "ensembl": return True
+        return False
+
+class GTFgene84(GTFfeature):
+    def isFeature(self):  # logically, isGene()
+        """Evaluate feature from ensembl 84 GTF file.  Other releases may also work.
+        We consider a line a gene if feature = gene.
+        This is ad hoc."""
+        if self.feature == "gene": return True
         return False
 
 def filterGTF(f, o, GTFclass, asBED, mergeStrand):
@@ -79,6 +108,7 @@ def main():
     parser.add_option("-o", dest="out_fn", default="stdout", help="Output filename")
     parser.add_option("-b", dest="as_bed", action="store_true", help="Output in BED format")
     parser.add_option("-s", dest="mergeStrand", action="store_true", help="Add :-delimited strand information to gene name")
+    parser.add_option("-e", dest="ensembl_version", default="84", help="Define Ensembl version.  Supported values = '75', '84'.")
 
     (options, params) = parser.parse_args()
     if options.verbose:
@@ -102,10 +132,15 @@ def main():
     else:
         o = open(outfn, "w")
 
+    if options.ensembl_version not in ['75', '84']:
+        print "Unsupported Ensembl version "+options.ensembl_version
+        print "Assuming format is Ensembl 84"
+        options.ensembl_version = '84'
+
     if feature == "gene":
-        filterClass = GTFgene
+        filterClass = GTFgene75 if options.ensembl_version == '75' else GTFgene84
     else:
-        filterClass = GTFexon
+        filterClass = GTFexon75 if options.ensembl_version == '75' else GTFexon84
     filterGTF(f, o, filterClass, options.as_bed, options.mergeStrand)
 
     o.close()
