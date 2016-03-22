@@ -11,19 +11,23 @@
 # here: https://www.biostars.org/p/120306/ Our filtering works for Ensembl 75 GTF but may change in the future.  
 
 import sys
+import re
 
 class GTFfeature:
     """Processes one line of GTF file.  Expands attributes column into key/value pairs"""
     # GTF fields described in README.ensembl and http://www.ensembl.org/info/website/upload/gff.html
     def __init__(self, GTFline):
         self.GTF = GTFline
+        # TODO: all of these should be inserted into dictionary so can be uniformly accessed.
         self.seqname, self.source, self.feature, start, end, self.score, self.strand, self.frame, attributes = GTFline.split("\t")
         self.start, self.end = int(start), int(end)
-        # Split the attributes field.  Example: 'gene_id "ENSG00000172717"; gene_name "FAM71D"; gene_source "ensembl_havana"; gene_biotype "protein_coding";'
-        #   becomes ['gene_id ENSG00000172717', ' gene_name FAM71D', ' gene_source ensembl_havana', ' gene_biotype protein_coding']
-        attr_list = filter(None, attributes.rstrip().replace('"', '').split(";"))
+        # Split the attributes field by semicolon, then pattern match to extract key, value pair for each.
+        attr_list = filter(None, attributes.rstrip().split(";"))
+        pattern = re.compile("(\w+?)\s+?\"(.+?)\"")  # matches, 'key "value"'
         # now create key/value dictionary which is saved with this object
-        self.attributes = dict(tok.lstrip().split(' ') for tok in attr_list)
+        self.attributes = dict(pattern.search(tok).groups() for tok in attr_list)
+        # TODO: catch error and print out useful information about,
+        #   AttributeError: 'NoneType' object has no attribute 'groups'
 
     def asGTF(self):
         return self.GTF
@@ -40,6 +44,7 @@ class GTFfeature:
 class GTFexon(GTFfeature):
     def isFeature(self):    # logically, isExon()
         """We consider a line an exon if 1) feature = exon and 2) source = protein_coding"""
+        # TODO: this test changes with various releases.  Allow to be specified in a config file.
         #if self.feature == "exon" and self.attributes['gene_biotype'] == "protein_coding": return True
         if self.feature == "exon" and self.source == "protein_coding": return True
         return False
@@ -101,7 +106,6 @@ def main():
         filterClass = GTFgene
     else:
         filterClass = GTFexon
-        
     filterGTF(f, o, filterClass, options.as_bed, options.mergeStrand)
 
     o.close()
