@@ -249,6 +249,8 @@ if (args$plot.type == "depth" | args$plot.type == "CBS") {
     breakpoints.bpc = read.BPC(args$data.fn)
     if (!args$skip.data.filter) {
         if (args$chrom.AB == "A")
+            # note that this will return *all* breakpoints on B, not just those on this chrom B or within plotted range
+            # we may wish to filter by either
             breakpoints.bpc = filter.BPC(breakpoints.bpc, args$range.chr, args$range.pos, NULL, NULL)
         else
             breakpoints.bpc = filter.BPC(breakpoints.bpc, NULL, NULL, args$range.chr, args$range.pos)
