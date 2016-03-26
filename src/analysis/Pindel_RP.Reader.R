@@ -18,6 +18,8 @@
 #
 # -v: Verbose output
 # -S: Exclude intra-chromosomal events 
+#
+# BPR and BPC file format descriptions: $BPS_CORE/doc/BPC_BPR_FileFormat.txt
 
 options("width"=180) # useful for debugging
 
@@ -109,4 +111,19 @@ pindel.df = read.Pindel_RP(f)
 pindel.df = filter.pindel(pindel.df, args$exclude.intra)
 pindel.BPR = as.BPR(pindel.df)
 
-write.table(pindel.BPR, file=args$out.fn, sep="\t", quote=FALSE, row.names=FALSE)
+### need to put a # character before header column
+# For convenience and to identify the attribute column, write header as a comment line
+cn = c("# chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "strand")
+write.table(pindel.BPR, file=args$out.fn, sep="\t", quote=FALSE, row.names=FALSE, col.names=cn) #, row.names=FALSE)
+
+# FYI: code to write arbitrary headers, including timestamp.  
+#con = file(args$out.fn, open="wt")
+#timestamp = paste0("# Created ", Sys.time())
+#writeLines(paste("# Data File Description ", timestamp, sep="\n"), con)
+#write.table(discovery.join, con, sep="\t", quote=FALSE, row.names=FALSE)
+#close(con)
+#cat(sprintf("    Saved to %s\n", args$out.fn))
+
+
+
+

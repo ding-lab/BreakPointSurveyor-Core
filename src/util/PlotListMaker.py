@@ -15,17 +15,7 @@
 #  * chrom.b, (second chromosome of coordiante pair)
 #  * event.b.start, event.b.end, range.b.start, range.b.end 
 
-# Aside on data formats: (from /gscuser/mwyczalk/projects/TCGA_SARC/ICGC/A_AnalyzeVCF/README)
-#     In general, we represent breakpoints as a coordinate given by a pair of chrom/pos (Breakpoint Coordinates, or BPC).
-#     Alternatively, we may consider a breakpoint region (BPR), which has a pair of chrom/pos.start/pos.end values.
-#     Breakpoints with precise positions (e.g., discordant pair positions) will be represented by the former,
-#     while regions such as SV Events will be represented by the latter.
-# 
-#     Each breakpoint coordinate or region is represented just once, with chromA < chromB, or posA < posB if chromA==chromB
-# 
-#     Both are represented in a TSV file,
-#     BPC: chromA, posA, chromB, posB
-#     BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end
+# BPC, BPR data formats: $BPS_CORE/doc/BPC_BPR_FileFormat.txt
 
 import itertools, string, sys
 
@@ -59,6 +49,7 @@ class FAI:
 
 
 def parse_BP(f, o, fai, isBPC, barcode, context, options):
+    # suffix is series of strings "AA", "AB", "AC", etc. which ensure event names are unique
     # a generator and http://stackoverflow.com/questions/2156892/python-how-can-i-increment-a-char
     suffix=(''.join(i) for i in itertools.product(string.ascii_uppercase, repeat=int(options.suffix_length)))  
 
@@ -80,7 +71,7 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
                 chromA, posA_start, chromB, posB_start, attrib = t
             else:
                 raise Exception("Unknown format of BPC input file")
-            posA_start, posB_start = map(int(posA_start, posB_start))
+            posA_start, posB_start = map(int, (posA_start, posB_start))
             posA_end, posB_end = posA_start + 1, posB_start+1
         else:
             if len(t) == 6:
@@ -99,7 +90,9 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
 #  * chrom.b, (second chromosome of coordiante pair)
 #  * event.b.start, event.b.end, range.b.start, range.b.end 
         try:
-            event_name = ".".join( (barcode, suffix.next(), "_".join( ("chr", chromA, chromB) )) )
+            # chrom_prefix can be "chr" if chrom name is e.g. "1".  This makes event name format more clear.
+            chrom_names = [options.chrom_prefix + c for c in [chromA, chromB]]
+            event_name = ".".join( (barcode, suffix.next(), "_".join( chrom_names )) )
         except StopIteration: # Catch StopIteration, require suffix_length to be increased
             sys.stderr.write("Event name looped.  Increase suffix_length (-s)\n")
             sys.exit()
@@ -117,7 +110,9 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
 def main():
     from optparse import OptionParser
     usage_text = """usage: %prog [options] ...
-        Generate a Breakpoint Surveyor PlotList file from a Breakpoint Region or Breakpoint Coordinate file
+        Generate a PlotList file from a BPS or BPR file
+
+        Unique names are created for each line of PlotList file.
         """
 
     parser = OptionParser(usage_text, version="$Revision: 1.2 $")
@@ -128,6 +123,7 @@ def main():
     parser.add_option("-r", dest="reference_fai", default=None, help="Reference FAI file listing chrom lengths")
     parser.add_option("-n", dest="barcode", default="", help="Sample barcode or other identifier")
     parser.add_option("-s", dest="suffix_length", default="2", help="Length of letter code (2 is aa, ab, ac, ...)")
+    parser.add_option("-p", dest="chrom_prefix", default="", help="String before chrom name in event name, for legibility")
     parser.add_option("-H", dest="write_header", action="store_true", help="Write column headers in output")
 
     (options, params) = parser.parse_args()
