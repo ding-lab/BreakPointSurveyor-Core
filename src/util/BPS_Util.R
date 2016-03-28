@@ -59,10 +59,10 @@ read.BPC = function(BPC.fn) {
 # * BPR: chrom.A, pos.A.start, pos.A.end, chrom.B, pos.B.start, pos.B.end, [attribute] 
 read.BPR = function(BPR.fn) {
     data = read.table(BPR.fn, sep='\t')
-    if (ncol(data) == 7) {
+    if (ncol(data) == 6) {
         names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end")
         data$attribute = "default"
-    } else if (ncol(data) == 8) {
+    } else if (ncol(data) == 7) {
         names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
     } else {
         stop("Unexpected number of rows in ", BPR.fn)

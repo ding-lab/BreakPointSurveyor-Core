@@ -71,7 +71,8 @@ source_relative = function(source.fn) {
 #    print(paste("Sourcing",other.name,"from",script.name))
     source(other.name)
 }
-source_relative("BPS_Util.R")
+source_relative("BPS_PlotUtil.R")
+source_relative("../util/BPS_Util.R")
 
 # Usage: 
 #   args = parse_args()
@@ -148,16 +149,10 @@ make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL, no.commas
 #       when strand defined, aes(fill=strand)
 # qSBP: geom_segment.  aes(color=contig.id), alpha=0.5
 
-#   -a alpha
-#   -c color
-#   -f fill
-#   -s shape
-#   -z size
 render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL) {
 # if alpha, shape, size, color are defined, their values are passed to corresponding arguments.  
 # if color is not defined, then color is passed as an aesthetic with data$attribute as value.
 # BPC: "chrom.A", "pos.A", "chrom.B", "pos.B", "attribute"
-
 
     # call to geom_point consists of three argument types:
     #   data = BPC
@@ -184,10 +179,12 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
 
     # If there was no attribute column specified in BPC file (all attributes are "default") then
     # get rid of color legend.
-    attrib.uniq = unique(BPC$attribute)
-    if (length(attrib.uniq) == 1 & attrib.uniq[1] == "default") {
-        ggp = ggp + scale_color_discrete(guide=FALSE)  
-    }
+    # TODO: Getting rid of legend if it is default data is good to do, but it will clobber any existing legends so
+    # seems more appropriate to do later, or have that be defined by a flag.
+#    attrib.uniq = unique(BPC$attribute)
+#    if (length(attrib.uniq) == 1 & attrib.uniq[1] == "default") {
+#        ggp = ggp + scale_color_discrete(guide=FALSE)  
+#    }
 
     return(ggp)
 }
@@ -195,15 +192,31 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
 # Render region based on BPR data
 # names(BPR) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
 render.region = function(ggp, BPR, alpha=NA, color=NA, fill=NA) {
-    if (! is.null(BPR) && nrow(BPR)>0) {
-        # if fill == NA, aes(fill=attribute)
-        # if color == NA, aes(color=attribute)
-        # if both true, aes(fill=attribute, color=attribute)
-        # define argument to geom_rect fill = fill if fill != NA
-        # define argument to geom_rect color = color if color != NA
-        ggp = ggp + geom_rect(data=BPR, mapping=aes(xmin=pos.A.start, xmax=pos.A.end, ymin=pos.B.start, ymax=pos.B.end), fill=fill, color=color, alpha=alpha)
+    # if alpha, fill, or color are defined, their values are passed to corresponding arguments.  
+    # if color is not defined, then color is passed as an aesthetic with data$attribute as value.
+    if (is.null(BPR)) return (ggp)
+
+    args = list()   # first collect all static arguments, then add aes and data as arguments
+    aes.args = list(xmin="pos.A.start", xmax="pos.A.end", ymin="pos.B.start", ymax="pos.B.end")
+
+    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.null(fill)) args$fill = fill
+    if (!is.null(color)) args$color = color
+    else { # if not specified, color is an aes with value given by attribute column
+        aes.args$color = "attribute"
+    }
+    args$data=BPR
+    args$mapping = do.call(aes_string, aes.args)  
+    ggp = ggp + do.call(geom_rect, args)  
+
+    # If there was no attribute column specified in BPR file (all attributes are "default") then
+    # get rid of color legend.
+    attrib.uniq = unique(BPR$attribute)
+    if (length(attrib.uniq) == 1 & attrib.uniq[1] == "default") {
+        ggp = ggp + scale_color_discrete(guide=FALSE)  
     }
 
+    # basic call: geom_rect(data=BPR, mapping=aes(xmin=pos.A.start, xmax=pos.A.end, ymin=pos.B.start, ymax=pos.B.end), fill=fill, color=color, alpha=alpha)
     return(ggp)
 }
 
@@ -228,11 +241,17 @@ if (args$plot.type == "point") {
     if (!args$skip.data.filter) {
         breakpoints.bpc = filter.BPC(breakpoints.bpc, args$range.chr.A, args$range.pos.A, args$range.chr.B, args$range.pos.B)
     }
+    cat(paste("Plotting ", nrow(breakpoints.bpc), " points\n"))
     ggp = render.point(ggp, breakpoints.bpc, alpha=args$alpha, color=args$color, shape=args$shape, size=args$size)
 
 } else if (args$plot.type == "region") {
-#    filter.BPR(data, range.chr.A, range.pos.A, range.chr.B, range.pos.B) 
-    print("Unimplemented")
+    breakpoints.bpr = read.BPR(args$data.fn)
+
+    if (!args$skip.data.filter) {
+        breakpoints.bpr = filter.BPR(breakpoints.bpr, args$range.chr.A, args$range.pos.A, args$range.chr.B, args$range.pos.B)
+    }
+    cat(paste("Plotting ", nrow(breakpoints.bpr), " regions\n"))
+    ggp = render.region(ggp, breakpoints.bpr, alpha=args$alpha, color=args$color, fill=args$fill)
 
 } else if (args$plot.type == "segment") {
     print("Unimplemented")
@@ -240,12 +259,5 @@ if (args$plot.type == "point") {
 } else {
     stop("Unknown plot type", args$plot.type)
 }
-
-
-# TODO:
-# test and develop:
-#   * adding layers to a GGP object
-#   * Pindel regions
-#   * segments
 
 write.GGP(ggp, args$out.ggp, args$pdf.out)
