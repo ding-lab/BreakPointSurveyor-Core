@@ -36,22 +36,6 @@ normalize.depth = function(depth.list, doLog, num.reads=NA, read.length=NA) {
     return(list('norm.depth'=norm.depth, 'method'=method))
 }
 
-read.depth = function(depth.fn) {
-    depth = read.table(depth.fn, header=FALSE, sep="\t", colClasses=c("character","numeric","numeric"), col.names=c("chrom", "pos", "depth"))
-    return(depth)
-}
-
-filter.depth = function(depth, range.chr, range.pos) {
-    if (! is.null(range.chr)) depth = depth[depth$chrom %in% range.chr,]
-
-    if (!is.null(range.pos)) {
-        depth = depth[depth$pos >= range.pos[1] & depth$pos <= range.pos[2],]
-    } 
-    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
-    depth = depth[complete.cases(depth),]
-    return(depth)
-}
-
 calculateCBS = function(depth, do.log) {
     #CNA.object = CNA( log.depth = log2(depth$depth/median(depth$depth,na.rm=T)), chrom = depth$chrom, maploc = depth$pos, data.type = 'logratio')
 

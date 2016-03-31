@@ -22,22 +22,32 @@ get_bool_arg = function(args, flag) {
     return(val)
 }
 
-# Parse chromosome region string.  Accepted formats: "14", "14:12345-12456"
-# returns list ['range.pos', 'range.chr'], where range.pos is a list (e.g., [12345, 12456]) 
-# and range.chr is a string ("14").  range.pos is NULL if not specified.
-parse.range.str = function(chrarg) {
-    range.pos <- NULL
-    range.chr <- NULL
-    if (chrarg != 'all') {
-        chrlist<-strsplit(chrarg, ":")[[1]]
-        range.chr <- strsplit(chrlist[1], ",")[[1]][1]  # chromosome name -- only one allowed
-        if (length(chrlist) == 2) {
-            range.pos<-as.numeric(strsplit(chrlist[2], "-")[[1]])
-        }
-    } else {
-        stop("Error: Must specify range.  Quitting")
+# split a string like "123-456" into a numeric list [123,456]
+get.range = function(range.str) {
+    range.pos=as.numeric(strsplit(range.str, "-")[[1]])
+    if (any(is.na(range.pos))) {
+        stop("Error parsing: ", range.str)
     }
+    return(range.pos)
+}
 
+# Parse chromosome region string.  Accepted formats: NULL, "14", "14:12345-12456", "12345-12456"
+# returns list ['range.pos', 'range.chr'], where range.pos is a list (e.g., [12345, 12456]) 
+# and range.chr is a string ("14").  range.chr and range.pos are NULL if not specified.
+parse.range.str = function(chrarg) {
+    range.pos = NULL
+    range.chr = NULL
+    if (!is.null(chrarg)) {
+        if (grepl(":", chrarg)) {  # C:A-B
+            chrlist = strsplit(chrarg, ":")[[1]]
+            range.chr = chrlist[1]
+            range.pos = get.range(chrlist[2])
+        } else if (grepl("-", chrarg)) {  # A-B
+            range.pos = get.range(chrarg)  # C
+        } else {
+            range.chr = chrarg
+        }
+    } 
     return( list('range.pos'=range.pos, 'range.chr'=range.chr) )
 }
 
@@ -137,3 +147,20 @@ filter.BED = function(data, range.chr, range.pos) {
     data = data[complete.cases(data),]
     return(data)
 }
+
+read.depth = function(depth.fn) {
+    depth = read.table(depth.fn, header=FALSE, sep="\t", colClasses=c("character","numeric","numeric"), col.names=c("chrom", "pos", "depth"))
+    return(depth)
+}
+
+filter.depth = function(depth, range.chr, range.pos) {
+    if (! is.null(range.chr)) depth = depth[depth$chrom %in% range.chr,]
+
+    if (!is.null(range.pos)) {
+        depth = depth[depth$pos >= range.pos[1] & depth$pos <= range.pos[2],]
+    } 
+    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
+    depth = depth[complete.cases(depth),]
+    return(depth)
+}
+

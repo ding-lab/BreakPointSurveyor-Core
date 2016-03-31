@@ -2,14 +2,14 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript DepthRenderer.R [-v] [-P] [-A range] [-F] [-G fn.ggp] [-p plot.type] 
-#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-M]
+# Usage: Rscript DepthRenderer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] 
+#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-b] [-C]
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
 #   These values of plot.type are supported:
 #   * "depth" - read depth is plotted as a sequence of points.  "depth" file format
 #   * "CBS" - Plot segments of uniform depth (circular binary segmentation). "depth" file format
-#   * "point" - points are drawn at pos given by posA. y-position is jittered, posB ignored. BPC input
+#   * "point" - points are drawn at pos given by posA. y-position is jittered, posB ignored. BPC input  UNIMPLEMENTED
 #   * "vline" - vertical lines drawn at pos given by posA.  posB ignored.  BPC input
 #   * "region" - region at posA.start, posA.end with indefinite Y extent.  BPR input
 #   * "segment" - disconnected segments with X, Y endpoints given by A, B BPR regions, resp. (Used for precalculated CBS) 
@@ -26,19 +26,23 @@
 # -l: read length.  Necessary for normalizing to copy number
 #
 # -m chrom: if plotting point or region from BPC or BPR data, resp., define whether using chrom A or B.  "A" is default.
-# -A: Define range, specified as "C" or "C:M-N", where C is chromosome name
-#         and M,N are genomic start, stop positions.  Range is used for two distinct purposes:
+# -M: Define range for this chromosome, specified as "C" or "C:r-s", where C is chromosome name
+#         and r,s are genomic start, stop positions.  Range is used for two distinct purposes:
 #           1) Filter data before plotting
+#              Filtering data may be prevented with -F.  Applies to chrom A or B as defined by -m.
 #           2) Specify plot region
-#         Plot region is specified only if -G is not specified (i.e., creating new GGP)
-#         Filtering data may be prevented with -F.  Applies to chrom A or B as defined by -m.
-# -F: Do not filter data.  See above.
+#              Plot region is specified only if -G is not specified (i.e., creating new GGP)
+# -N Define range for plotting opposite chromosome.  Defines filtering of BPC/BPR data before plotting.
+#    See below for details.
+# -C: Use value of "other" (chrom N) chromosome as color for BPC/BPR-based annotation.  Attributes in those files or -c 
+#     will override this.
+# -F: Do not filter data for chrom M.  See above.
 #
 # -p: plot.type: one of "depth", "point", or "region"; these require depth, BPC, BPR data files, resp.  "depth" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 # -G fn.ggp: Append graphics to given ggp file, rather than creating new ggp file.
-# -B: Annotate for chrom B.  This rotates text and reverses X scale.
-# -M: format genomic coordinates without commas 
+# -B: Annotate for panel B in assembled figure  This rotates text and reverses X scale.
+# -b: format genomic coordinates without commas 
 #
 # The following constant attributes can be defined:
 #   -a alpha
@@ -73,6 +77,21 @@
 # If not log2: if both num.reads and read.length are defined (-u -l) then plot copy number
 #   otherwise, plot read depth
 #
+# Specifying chrom and range for BPC/BPR files (TODO: simplify and integrate details below)
+# When plotting read depth files, data is specific to that chrom, and -M defines the range of interest.
+# However, BPC (and BPR) files have chrom A and B, and we must specify which to plot.
+#   -m specifies whether chrom associated with read depth is chrom A or B.
+# Then, chrom.M is the one whose depth we are plotting, and chrom.N is the mate chrom
+#   (i.e., -m B implies that chrom.M is B and chrom.N is A)
+# When plotting BPC/BPR data as annotation to read depth, 
+#   -M specifies the chrom name and range of chrom.M (e.g., chr1:123-456)
+#   -N specifies the filter parameter for the mate chrom.  Specifying both chrom name and range
+#      will include only those breakpoints plotted in Breakpoints Coordinate panel.  Alternatively,
+#      excluding chrom or range specification will include chrom.B breakpoints from all chrom and all
+#      genomic positions, resp.  e.g., ("-m A -M chr1:100-200 -N 500-600" will annotate read depth plot with 
+#      marks indicating the position along chrom.A ("chr1") of all breakpoints (position 100-200) for which breakpoints along chrom B 
+#      occur at positions 500-600 on any chrom.
+#      Note that default value of -N will not exclude any chrom.N breakpoints.
 
 suppressPackageStartupMessages(library("ggplot2"))
 options("width"=300) # change terminal window width
@@ -93,7 +112,8 @@ source_relative = function(source.fn) {
 #    print(paste("Sourcing",other.name,"from",script.name))
     source(other.name)
 }
-source_relative("BPS_Util.R")
+source_relative("../util/BPS_Util.R")
+source_relative("BPS_PlotUtil.R")
 source_relative("DepthUtil.R")
 
 parse_args = function() {
@@ -102,7 +122,8 @@ parse_args = function() {
     # optional arguments
     verbose = get_bool_arg(args, "-v")
 
-    range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.chr, start=range.pos[1], start=range.pos[2]
+    range.M = parse.range.str(get_val_arg(args, "-M", NULL))  
+    range.N = parse.range.str(get_val_arg(args, "-N", NULL))  
     plot.log.depth = get_bool_arg(args, "-L")
     num.reads = as.numeric(get_val_arg(args, "-u", NA))
     read.length = as.numeric(get_val_arg(args, "-l", NA))
@@ -110,13 +131,21 @@ parse_args = function() {
     if (! chrom.AB %in% c("A", "B")) {
         stop("-m argument must be either A or B")
     }
+    if (chrom.AB == "A") {
+        range.A = range.M
+        range.B = range.N
+    } else {
+        range.B = range.M
+        range.A = range.N
+    }
 
     skip.data.filter = get_bool_arg(args, "-F")
     in.ggp = get_val_arg(args, "-G", NULL)
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
-    is.B = get_bool_arg(args, "-B")
-    no.commas = get_bool_arg(args, "-M")
+    panel.B = get_bool_arg(args, "-B")
+    no.commas = get_bool_arg(args, "-b")
+    color.by.chrom.N = get_bool_arg(args, "-C")
 
     alpha = get_val_arg(args, "-a", NULL)
     color = get_val_arg(args, "-c", NULL)
@@ -130,20 +159,24 @@ parse_args = function() {
     data.fn = args[length(args)];      args = args[-length(args)]
 
     val = list( 
-        'range.pos'=range.A$range.pos, 'range.chr'=range.A$range.chr, 'is.B'=is.B, 
+        'range.A.pos'=range.A$range.pos, 'range.A.chr'=range.A$range.chr, 
+        'range.B.pos'=range.B$range.pos, 'range.B.chr'=range.B$range.chr, 
+        'range.M.pos'=range.M$range.pos, 'range.M.chr'=range.M$range.chr, 
+        'range.N.pos'=range.N$range.pos, 'range.N.chr'=range.N$range.chr, 
+        'panel.B'=panel.B, 
         'verbose' = verbose, 'plot.log.depth' = plot.log.depth, 'num.reads' = num.reads,
         'read.length' = read.length, 'skip.data.filter' = skip.data.filter, 'in.ggp' = in.ggp,
         'plot.type' = plot.type, 'pdf.out' = pdf.out, 'alpha' = alpha, 'color' = color, 'fill' = fill,
         'shape' = shape, 'size' = size, 'linetype'=linetype, 'out.ggp' = out.ggp, 'data.fn' = data.fn,
-        'chrom.AB' = chrom.AB, 'no.commas'=no.commas )
+        'chrom.AB' = chrom.AB, 'no.commas'=no.commas, 'color.by.chrom.N'=color.by.chrom.N )
     if (val$verbose) { print(val) }
 
     return (val)
 }
 
-# is.B indicates that this is a panel which will be rotated when assembled in final plot, and we reverse X axis
+# panel.B indicates that this is a panel which will be rotated when assembled in final plot, and we reverse X axis
 # (making genomic position increase in downward direction in final plot)
-make.depth.GGP = function(range.pos = NULL, is.B = FALSE, no.commas=FALSE) {
+make.depth.GGP = function(range.pos = NULL, panel.B = FALSE, no.commas=FALSE) {
     # define basic properties of Depth GGP object.
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
     if (!is.null(range.pos)) {
@@ -152,7 +185,7 @@ make.depth.GGP = function(range.pos = NULL, is.B = FALSE, no.commas=FALSE) {
     ggp = ggp + theme_bw()
     ggp = ggp + theme(axis.text=element_text(size=6), axis.text.y=element_text(angle=-90, hjust=0.5))  
 
-    trans = if (is.B) reverse_trans() else "identity"
+    trans = if (panel.B) reverse_trans() else "identity"
     labels = if (no.commas) waiver() else comma
     ggp = ggp + scale_x_continuous(labels=labels, trans=trans)  
         
@@ -205,6 +238,40 @@ render.vline = function(ggp, BPC, chrom.AB, alpha=NULL, color=NULL, linetype=NUL
     return(ggp)
 }
 
+# Render region based on BPR data
+# names(BPR) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
+render.region = function(ggp, BPR, chrom.AB, alpha=NA, color=NA, fill=NA) {
+    # if alpha, fill, or color are defined, their values are passed to corresponding arguments.  
+    # if fill is not defined, then fill is passed as an aesthetic with data$attribute as value.
+    if (is.null(BPR)) return (ggp)
+
+    args = list()   # first collect all static arguments, then add aes and data as arguments
+    if (chrom.AB == "A") {
+        aes.args = list(xmin="pos.A.start", xmax="pos.A.end", ymin=-Inf, ymax=Inf)
+    } else {
+        aes.args = list(xmin="pos.B.start", xmax="pos.B.end", ymin=-Inf, ymax=Inf)
+    }
+
+    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.null(color)) args$color = color
+    if (!is.null(fill)) args$fill = fill
+    else { # if not specified, fill is an aes with value given by attribute column
+        aes.args$fill = "attribute"
+    }
+    args$data=BPR
+    args$mapping = do.call(aes_string, aes.args)  
+    ggp = ggp + do.call(geom_rect, args)  
+
+    # If there was no attribute column specified in BPR file (all attributes are "default") then
+    # get rid of color legend.
+#    attrib.uniq = unique(BPR$attribute)
+#    if (length(attrib.uniq) == 1 & attrib.uniq[1] == "default") {
+#        ggp = ggp + scale_fill_discrete(guide=FALSE)  
+#    }
+
+    return(ggp)
+}
+
 render.CBS = function(ggp, CBS, alpha=NULL, color=NULL, linetype=NULL, size=NULL) {
 # if alpha, size, color, linetype are defined, their values are passed to corresponding arguments.  
 #  CBS: chrom, start, end, seg.mean, pos, g
@@ -225,7 +292,7 @@ render.CBS = function(ggp, CBS, alpha=NULL, color=NULL, linetype=NULL, size=NULL
 args = parse_args()
 
 if (is.null(args$in.ggp)) {
-    ggp = make.depth.GGP(args$range.pos, args$is.B, args$no.commas)
+    ggp = make.depth.GGP(args$range.pos, args$panel.B, args$no.commas)
 } else {
     ggp = readRDS(args$in.ggp)   # http://www.fromthebottomoftheheap.net/2012/04/01/saving-and-loading-r-objects/
 }
@@ -246,23 +313,39 @@ if (args$plot.type == "depth" | args$plot.type == "CBS") {
     }
 
 } else if (args$plot.type == "point" | args$plot.type == "vline") {
-    breakpoints.bpc = read.BPC(args$data.fn)
+    breakpoints = read.BPC(args$data.fn)
     if (!args$skip.data.filter) {
-        if (args$chrom.AB == "A")
-            # note that this will return *all* breakpoints on B, not just those on this chrom B or within plotted range
-            # we may wish to filter by either
-            breakpoints.bpc = filter.BPC(breakpoints.bpc, args$range.chr, args$range.pos, NULL, NULL)
-        else
-            breakpoints.bpc = filter.BPC(breakpoints.bpc, NULL, NULL, args$range.chr, args$range.pos)
+        breakpoints = filter.BPC(breakpoints, args$range.A.chr, args$range.A.pos, args$range.B.chr, args$range.B.pos)
     }
-    if (args$plot.type == "point") {
-        stop("Unimplemented")
-        ggp = render.point(ggp, breakpoints.bpc, args$chrom.AB, alpha=args$alpha, color=args$color, shape=args$shape, size=args$size)
-    } else { # (plot.type == "vline")
-        ggp = render.vline(ggp, breakpoints.bpc, args$chrom.AB, alpha=args$alpha, color=args$color, linetype=args$linetype, size=args$size)
+
+    if (nrow(breakpoints) > 0) {
+        if (args$color.by.chrom.N & all(breakpoints$attribute == "default")) {
+            if (args$chrom.AB == "A")
+                breakpoints$attribute = breakpoints$chrom.B
+            else
+                breakpoints$attribute = breakpoints$chrom.A
+        }
+
+        if (args$plot.type == "point") {  # will we ever use this?
+            stop("Unimplemented")
+        } else { # (plot.type == "vline")
+            ggp = render.vline(ggp, breakpoints, args$chrom.AB, alpha=args$alpha, color=args$color, linetype=args$linetype, size=args$size)
+        }
     }
 } else if (args$plot.type == "region" ) {
-        stop("Unimplemented")
+    breakpoints = read.BPR(args$data.fn)
+    if (!args$skip.data.filter) {
+        breakpoints = filter.BPR(breakpoints, args$range.A.chr, args$range.A.pos, args$range.B.chr, args$range.B.pos)
+    }
+
+    if (args$color.by.chrom.N & all(breakpoints$attribute == "default")) {
+        if (args$chrom.AB == "A")
+            breakpoints$attribute = breakpoints$chrom.B
+        else
+            breakpoints$attribute = breakpoints$chrom.A
+    }
+
+    ggp = render.region(ggp, breakpoints, args$chrom.AB, alpha=args$alpha, color=args$color, fill=args$fill)
 
 } else if (args$plot.type == "segment") {
     print("Unimplemented")

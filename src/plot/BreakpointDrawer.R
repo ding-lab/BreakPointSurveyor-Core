@@ -82,8 +82,8 @@ parse_args = function() {
 
     # optional arguments
     verbose = get_bool_arg(args, "-v")
-    range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.pos.A, range.chr.A
-    range.B = parse.range.str(get_val_arg(args, "-B", "all"))  # accessible as range.pos.B, range.chr.B
+    range.A = parse.range.str(get_val_arg(args, "-A", NULL))  # accessible as range.pos.A, range.chr.A
+    range.B = parse.range.str(get_val_arg(args, "-B", NULL))  # accessible as range.pos.B, range.chr.B
 
     skip.data.filter = get_bool_arg(args, "-F")
     in.ggp = get_val_arg(args, "-G", NULL)

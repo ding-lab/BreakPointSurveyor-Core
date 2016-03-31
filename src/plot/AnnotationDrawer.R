@@ -47,7 +47,7 @@ parse_args = function() {
     verbose = get_bool_arg(args, "-v")
     pdf.out = get_bool_arg(args, "-P")
 
-    range.A = parse.range.str(get_val_arg(args, "-A", "all"))  # accessible as range.chr, start=range.pos[1], start=range.pos[2]
+    range.A = parse.range.str(get_val_arg(args, "-A", NULL))  # accessible as range.chr, start=range.pos[1], start=range.pos[2]
     exons.bed.fn = get_val_arg(args, "-e", NULL)
     dodge = get_val_arg(args, "-D", "4")
     is.B = get_bool_arg(args, "-B")
