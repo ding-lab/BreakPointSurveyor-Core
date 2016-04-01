@@ -143,8 +143,6 @@ filter.BED = function(data, range.chr, range.pos) {
         in.range = is.overlapping(data$start, data$end, range.pos[1], range.pos[2])
         data = data[in.range,]
     } 
-    # Get rid of rows with NA in them.  It would be useful to refactor attributes as well.
-    data = data[complete.cases(data),]
     return(data)
 }
 
