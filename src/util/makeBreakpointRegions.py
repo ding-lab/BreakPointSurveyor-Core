@@ -39,7 +39,7 @@ import sys
 
 class Breakpoints:
     """Read, filter, and store breakpoint data from BPC file."""
-    # internally, breakpoints are represented as tuples, (chromA, posA, chromB, posB)
+    # internally, breakpoints are represented as tuples, (chromA, posA, chromB, posB, attr)
     # where chromA, chromB are the chromosomes of interest as defined by user
     # the index into list of breakpoints is the bp_id and uniquely identifies a breakpoint
     # If noSwap, lines with (chromB, chromA) are ignored
@@ -49,33 +49,35 @@ class Breakpoints:
         self.breakpoints = []
         for line in f:
             if line.startswith("#"): continue
-            chrom1, pos1, chrom2, pos2 = self.parseBPR(line) if fromBPR else self.parseBPC(line)
+            chrom1, pos1, chrom2, pos2, attr = self.parseBPR(line) if fromBPR else self.parseBPC(line)
             if chrom1 == chromA and chrom2 == chromB:
-                self.breakpoints.append( (chrom1, int(pos1), chrom2, int(pos2)) )
+                self.breakpoints.append( (chrom1, int(pos1), chrom2, int(pos2), attr) )
             elif chrom2 == chromA and chrom1 == chromB and not noSwap:
-                self.breakpoints.append( (chrom2, int(pos2), chrom1, int(pos1)) )
+                self.breakpoints.append( (chrom2, int(pos2), chrom1, int(pos1), attr) )
 
     def __repr__(self):
         return str(self.breakpoints)
 
     def parseBPC(self, line):
-        """Process one BPC line and return (chrom1, pos1, chrom2, pos2),
-        with pos1, pos2 as integers."""
-        # Consider first four columns, ignoring any attributes
-        t = line.rstrip().split("\t")[0:4]
-        return (t[0], int(t[1]), t[2], int(t[3]))
+        """Process one BPC line and return (chrom1, pos1, chrom2, pos2, attr),
+        with pos1, pos2 as integers.  If attribute not specified in file, attr=None"""
+        # Consider first five columns.  If that fails, try first four
+        t = line.rstrip().split("\t")[0:5]
+        if len(t)==4:
+            t.append(None)
+        return (t[0], int(t[1]), t[2], int(t[3]), t[4])
     
 
     def parseBPR(self, line):
-        """Process one BPR line. Return (chrom1, mid.pos1, chrom2, mid.pos2) where
-         mid is given by midpoint of region."""
-        # Consider first six columns, ignoring any attributes
-        #chrom1, start1, end1, chrom2, start2, end2 = line.rstrip().split("\t")[1:6]
+        """Process one BPR line. Return (chrom1, mid.pos1, chrom2, mid.pos2, attr) where
+         mid is given by midpoint of region.  If attribute not specified in file, attr=None"""
+        # Consider first seven columns, 
         t = line.rstrip().split("\t")[0:6]
+        attr = None if len(t) == 6 else t[6]
         start1, end1, start2, end2 = [int(v) for v in [t[1], t[2], t[4], t[5]]]
         pos1 = start1 + (end1 - start1) / 2
         pos2 = start2 + (end2 - start2) / 2
-        return (t[0], pos1, t[3], pos2)
+        return (t[0], pos1, t[3], pos2, attr)
 
     def overlapping(self, bp1_id, bp2_id, R):
         """Test whether breakpoint 1 is within distance radius of breakpoint 2 in any direction"""
@@ -105,11 +107,15 @@ class Breakpoints:
         "Given list of breakpoints ids c, return range start and stop for chrom A and B"
         startA, startB, endA, endB, chromA, chromB = float("inf"), float("inf"), float("-inf"), float("-inf"), None, None
         for bp in c:
-            (chromA, posA, chromB, posB) = self.breakpoints[bp]
+            (chromA, posA, chromB, posB, attr) = self.breakpoints[bp]
             startA, startB = min(startA, posA), min(startB, posB)
             endA, endB = max(endA, posA), max(endB, posB)
         return chromA, startA, endA, chromB, startB, endB
 
+    def getBPAttr(self, c):
+        "Given list of breakpoints ids c, return list of their attributes"
+        attrs = [self.breakpoints[bp][4] for bp in c]
+        return attrs
 
 class Clusters:
     """Maintains, examines, and manipulates a list of clusters, each of which holds overlapping breakpoints."""
@@ -146,20 +152,28 @@ class Clusters:
         del self.clusters[cidB]
 
 
-    def writeBPR(self, o, bp, header=False, countBP=False):
-        "Write contents of this object in BPR format"
-        # BPR object has columns, chromA, posA.start, posA.end, chromB, posB.start, posB.end
+    def writeBPR(self, o, bp, header=False, countBP=False, writeAttr=False):
+        "Write contents of this object in BPR-like format"
+        # BPR object has columns, chromA, posA.start, posA.end, chromB, posB.start, posB.end, [attr]
+        # this is not real BPR because extra columns may be appended
         # All headers are comments
         if header: 
+            headers = ("# chromA", "startA", "endA", "chromB", "startB", "endB")
             if countBP:
-                o.write('\t'.join( ("# chromA", "startA", "endA", "chromB", "startB", "endB", "breakpointCount") )+"\n")
-            else:
-                o.write('\t'.join( ("# chromA", "startA", "endA", "chromB", "startB", "endB") )+"\n")
+                headers += ("breakpointCount",)
+            if writeAttr:
+                headers += ("attributes",)
+            o.write('\t'.join( headers )+"\n")
+
         for k,c in self.clusters.iteritems():  # c is a list of breakpoint ids
+            fields = bp.getBPRange(c)
             if countBP:
-                o.write('\t'.join( map(str, bp.getBPRange(c) + (len(c),) ) )+"\n")
-            else:
-                o.write('\t'.join( map(str, bp.getBPRange(c)) )+"\n")
+                fields += (len(c),)
+            if writeAttr:
+                attrs = ",".join(bp.getBPAttr(c))
+                fields += (attrs,)
+
+            o.write('\t'.join( map(str, fields) )+"\n")
 
 def makeBreakpointClusters(breakpoints, radius):
     """Merge into clusters those breakpoints which are within radius distance of each other.  Return clusters object."""
@@ -189,7 +203,9 @@ Cluster Breakpoints into Breakpoint regions.
 BPC file is read with breakpoint coordinates.  For a given chromosome pair, all
 breakpoints within a given distance of each other along both chromosomes are
 collected into collective clusters.  Such clusters then define the regions of
-interest as written to a BPR file."""
+interest as written to a BPR-like file."""
+
+# BPR-like because may have multiple attribute fields
 
     parser = OptionParser(usage_text, version="$Revision: 1.2 $")
     parser.add_option("-R", dest="radius", default="10000000", help="Cluster all breakpoints within this distance of each other.  Default 10M.")
@@ -200,6 +216,7 @@ interest as written to a BPR file."""
     parser.add_option("-d", dest="debug", action="store_true", help="Print cluster details as comments in output file")
     parser.add_option("-c", dest="countBP", action="store_true", help="Print count of breakpoints per cluster as final BPR column")
     parser.add_option("-r", dest="fromBPR", action="store_true", help="Read BPR data and treat center of each region as BPC coordinate")
+    parser.add_option("-a", dest="writeAttr", action="store_true", help="Print comma-separated list of breakpoint attributes as last column")
 
     (options, params) = parser.parse_args()
 
@@ -225,7 +242,7 @@ interest as written to a BPR file."""
         o.write( "# Cluster radius: " + options.radius + "\n" )
         o.write( "# Cluster dump: "+ str(clusters) + "\n" )
 
-    clusters.writeBPR(o, breakpoints, options.header, options.countBP)
+    clusters.writeBPR(o, breakpoints, options.header, options.countBP, options.writeAttr)
     f.close()
     o.close()
 

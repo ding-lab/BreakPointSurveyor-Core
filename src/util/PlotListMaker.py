@@ -14,6 +14,7 @@
 #  * range.a.start, range.a.end (indicates region to plot; calculated as event.start - context, event.end + context, respectively)
 #  * chrom.b, (second chromosome of coordiante pair)
 #  * event.b.start, event.b.end, range.b.start, range.b.end 
+# attribute columns ignored 
 
 # BPC, BPR data formats: $BPS_CORE/doc/BPC_BPR_FileFormat.txt
 
