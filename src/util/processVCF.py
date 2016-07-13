@@ -9,9 +9,9 @@ import sys
 
 def write_size(o, vcf_reader):
     """Write variant start, end, size, and type"""
-    o.write( '\t'.join( ("Start", "End", "Size", "Type") ) + "\n")
+    o.write( '\t'.join( ("Chrom", "Start", "End", "Size", "Type") ) + "\n")
     for record in vcf_reader:
-        o.write('\t'.join((str(record.start), str(record.end), str(record.end - record.start), record.var_subtype)) + "\n")
+        o.write('\t'.join((record.CHROM, str(record.start), str(record.end), str(record.end - record.start), record.var_subtype)) + "\n")
 
 def write_bed(o, vcf_reader):
     """Write variant BED file with variant chrom, start, end, and type"""
