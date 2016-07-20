@@ -2,11 +2,11 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript Pindel_RP.Reader.R [-v] [-S] PindelRP.dat out.BPR
+# Usage: Rscript Pindel_RP.Reader.R [-v] [-V] [-p virus.prefix] [-S] PindelRP.dat out.BPR
 #
 #   Create Breakpoint Region file (BPR) based on output of Pindel RP module.
 #
-#   Retain only inter-chromosomal translocations 
+#   Optionally retain only inter-chromosomal translocations or human-virus breakpoints
 #   Attribute (strand) column of BPR is string composed of chrom A and B strand info, e.g., "A+ B-"
 #
 # Input arguments:
@@ -18,6 +18,8 @@
 #
 # -v: Verbose output
 # -S: Exclude intra-chromosomal events 
+# -V: Retain only human-virus breakpoints, with virus "chromosome" identified by virus.prefix, below
+# -p virus.prefix: string identifying virus reference.  Default 'gi'
 #
 # BPR and BPC file format descriptions: $BPS_CORE/doc/BPC_BPR_FileFormat.txt
 
@@ -44,30 +46,43 @@ parse_args = function() {
     # optional arguments
     verbose = get_bool_arg(args, "-v")
     exclude.intra = get_bool_arg(args, "-S")
+    filter.virus = get_bool_arg(args, "-V")
+    virus.prefix = get_val_arg(args, "-p", "gi")
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.fn = args[length(args)]; args = args[-length(args)]
     dat.fn = args[length(args)]; args = args[-length(args)]
 
-    val = list('verbose'= verbose, 'out.fn'= out.fn, 'dat.fn'=dat.fn, 'exclude.intra'=exclude.intra)
+    val = list('verbose'= verbose, 'out.fn'= out.fn, 'dat.fn'=dat.fn, 'exclude.intra'=exclude.intra, 
+            'filter.virus'=filter.virus, 'virus.prefix'=virus.prefix)
     if (val$verbose) { print(val) }
     return (val)
 }
 
 read.Pindel_RP = function(pindel.fn) {
-    pindel.df = read.table(pindel.fn, col.names=c("chrom1", "start1", "end1", "strand1", "length1", "chrom2", "start2", "end2", "strand2", "length2", 'event.size', "support"), sep="\t",
-                                colClasses = c("character", 'numeric', 'numeric', 'character', 'numeric', 'character', 'numeric', 'numeric', 'character', 'numeric', 'numeric', 'character'))
+    pindel.df = read.table(pindel.fn, col.names=c("chrom1", "start1", "end1", "strand1", "length1", 
+            "chrom2", "start2", "end2", "strand2", "length2", 'event.size', "support"), sep="\t",
+            colClasses = c("character", 'numeric', 'numeric', 'character', 'numeric', 'character', 
+            'numeric', 'numeric', 'character', 'numeric', 'numeric', 'character'))
     if (nrow(pindel.df) == 0) 
         pindel.df = NULL
     return(pindel.df)
 }
 
-# delete cases where chrom1 = chrom2
-filter.pindel = function(pindel.df, exclude.intra = FALSE) {
+# optionally delete cases where chrom1 = chrom2
+# optionally include only cases where one chrom starts with virus.prefix
+filter.pindel = function(pindel.df, exclude.intra = FALSE, filter.virus = FALSE, virus.prefix="gi") {
     if (is.null(pindel.df)) return(NULL)
 
     if (exclude.intra)
         pindel.df = pindel.df[pindel.df$chrom1 != pindel.df$chrom2,]
+
+    if (filter.virus) {
+        pre = "^"+virus.prefix
+        keepA = which(grepl(pre,pindel.df$chrom1) && !grepl(pre,pindel.df$chrom2))
+        keepB = which(!grepl(pre,pindel.df$chrom1) && grepl(pre,pindel.df$chrom2))
+        pindel.df = pindel.df[ c(keepA, keepB), ]
+    }
 
     if (nrow(pindel.df) == 0) {
         pindel.df = NULL
@@ -108,7 +123,7 @@ f = if (args$dat.fn == "stdin") file("stdin") else args$dat.fn
 #    data = read.csv(f, sep='\t', header=FALSE, quote="")  # the " character can occur in SAM file and quoting must be disabled
 
 pindel.df = read.Pindel_RP(f)
-pindel.df = filter.pindel(pindel.df, args$exclude.intra)
+pindel.df = filter.pindel(pindel.df, args$exclude.intra, args$filter.virus, args$filter.prefix)
 pindel.BPR = as.BPR(pindel.df)
 
 ### need to put a # character before header column
