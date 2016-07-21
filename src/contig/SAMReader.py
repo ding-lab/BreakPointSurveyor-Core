@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
 
-# current version 5/6/15 19:30
+# TODO: make the output of this be 1-base rather than 0-base, so that this output is consistent with
+# what is seen in SAM file.  This will make SBP be 1-base too, making analysis easier.
 
 # Usage:
 #   python BreakpointReader.py [-o out.dat] data.sam

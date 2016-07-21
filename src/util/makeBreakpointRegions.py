@@ -33,7 +33,8 @@
 #
 # With -r flag, read breakpoint coordinates from BPR file instead of BPC file.
 # Geometric center of each BPR region is treated as a BPC breakpoint.  The actual extents of each region are then ignored.
-#
+
+# TODO: for verbose output, print full line of original BPC entries in each cluster
 
 import sys
 

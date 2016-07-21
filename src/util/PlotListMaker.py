@@ -91,8 +91,12 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
 #  * chrom.b, (second chromosome of coordiante pair)
 #  * event.b.start, event.b.end, range.b.start, range.b.end 
         try:
+            # chrom_keep defines which chrom names listed in event name.  May exclude names if they are long (e.g., virus) or otherwise unnecessary
+            chrom_keep = []
+            if "A" in options.chrom_keep: chrom_keep.append(chromA)
+            if "B" in options.chrom_keep: chrom_keep.append(chromB)
             # chrom_prefix can be "chr" if chrom name is e.g. "1".  This makes event name format more clear.
-            chrom_names = [options.chrom_prefix + c for c in [chromA, chromB]]
+            chrom_names = [options.chrom_prefix + c for c in chrom_keep]
             event_name = ".".join( (barcode, suffix.next(), "_".join( chrom_names )) )
         except StopIteration: # Catch StopIteration, require suffix_length to be increased
             sys.stderr.write("Event name looped.  Increase suffix_length (-s)\n")
@@ -113,7 +117,9 @@ def main():
     usage_text = """usage: %prog [options] ...
         Generate a PlotList file from a BPS or BPR file
 
-        Unique names are created for each line of PlotList file.
+        Unique names are created for each line of PlotList file as,
+            BARCODE.SUFFIX_CPA_CPB,
+        where SUFFIX is AA, AB, ...; CPA and CPB are composed of chrom_prefix+chrom_name
         """
 
     parser = OptionParser(usage_text, version="$Revision: 1.2 $")
@@ -126,6 +132,7 @@ def main():
     parser.add_option("-s", dest="suffix_length", default="2", help="Length of letter code (2 is aa, ab, ac, ...)")
     parser.add_option("-p", dest="chrom_prefix", default="", help="String before chrom name in event name, for legibility")
     parser.add_option("-H", dest="write_header", action="store_true", help="Write column headers in output")
+    parser.add_option("-N", dest="chrom_keep", default="AB", help="One of AB, A, B, X; which chrom names to include in name, X for none")
 
     (options, params) = parser.parse_args()
 

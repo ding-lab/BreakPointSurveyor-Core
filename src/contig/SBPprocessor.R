@@ -129,7 +129,8 @@ get.rSBP = function(SBP.hv) {
 
 
 
-# See BreakPointParser.R, mark.segments() for details of how this works.
+# See BreakPointParser.R, mark.segments() for details of how this works - the implementation of combining
+# paired breakpoints is similar to combining segment pairs 
 mark.pairs = function(SBP.hv) {
     num.SBP = nrow(SBP.hv)
     SBP.hv = SBP.hv[with(SBP.hv, order(bp.id)), ]
