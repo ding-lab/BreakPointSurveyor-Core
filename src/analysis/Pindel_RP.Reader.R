@@ -78,9 +78,9 @@ filter.pindel = function(pindel.df, exclude.intra = FALSE, filter.virus = FALSE,
         pindel.df = pindel.df[pindel.df$chrom1 != pindel.df$chrom2,]
 
     if (filter.virus) {
-        pre = "^"+virus.prefix
-        keepA = which(grepl(pre,pindel.df$chrom1) && !grepl(pre,pindel.df$chrom2))
-        keepB = which(!grepl(pre,pindel.df$chrom1) && grepl(pre,pindel.df$chrom2))
+        pre = paste0("^", virus.prefix)
+        keepA = which(grepl(pre,pindel.df$chrom1) & !grepl(pre,pindel.df$chrom2))
+        keepB = which(!grepl(pre,pindel.df$chrom1) & grepl(pre,pindel.df$chrom2))
         pindel.df = pindel.df[ c(keepA, keepB), ]
     }
 
@@ -123,7 +123,7 @@ f = if (args$dat.fn == "stdin") file("stdin") else args$dat.fn
 #    data = read.csv(f, sep='\t', header=FALSE, quote="")  # the " character can occur in SAM file and quoting must be disabled
 
 pindel.df = read.Pindel_RP(f)
-pindel.df = filter.pindel(pindel.df, args$exclude.intra, args$filter.virus, args$filter.prefix)
+pindel.df = filter.pindel(pindel.df, args$exclude.intra, args$filter.virus, args$virus.prefix)
 pindel.BPR = as.BPR(pindel.df)
 
 ### need to put a # character before header column
