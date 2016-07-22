@@ -16,7 +16,7 @@ normalizeCopyNumber = function(depth.list, num.reads, read.length) {
 }
 
 # return normalized read length based on values of doLog, num.reads, and read.length
-# - if doLog=TRUE, norm.depth = log2(depth/<depth>), where depth is read depth and <depth> is the median depth of the filtered dataset
+# - if doLog=TRUE, norm.depth = log2(depth/<depth>), where depth is read depth and <depth> is the mean depth of the filtered dataset
 # - if doLog=FALSE:
 #   * if num.reads and read.length are specified, norm.depth is read depth divided by average read depth across the genome (as obtained from number of reads and read length)
 #   * if num.reads or read.length not specified, norm.depth is depth unchanged.
@@ -24,7 +24,8 @@ normalizeCopyNumber = function(depth.list, num.reads, read.length) {
 normalize.depth = function(depth.list, doLog, num.reads=NA, read.length=NA) {
     if (doLog) {
         # evaluate log.depth as log2(depth/<depth>)
-        norm.depth = log2(depth.list/median(depth.list,na.rm=T))
+        #norm.depth = log2(depth.list/median(depth.list,na.rm=T))
+        norm.depth = log2(depth.list/mean(depth.list,na.rm=T))  
         method="Log Depth Ratio"
     } else if (!is.na(num.reads) & (!is.na(read.length))) {
         norm.depth = normalizeCopyNumber(depth.list, num.reads, read.length)
@@ -43,7 +44,7 @@ calculateCBS = function(depth, do.log) {
     #   http://bioconductor.org/packages/release/bioc/html/DNAcopy.html
     # If we are confident it is, then should process norm.depth so that copy number scaling also supported. 
     if (do.log) {
-        CNA.object = CNA( genomdat = log2(depth$depth/median(depth$depth,na.rm=T)), chrom = depth$chrom, maploc = depth$pos)
+        CNA.object = CNA( genomdat = log2(depth$depth/mean(depth$depth,na.rm=T)), chrom = depth$chrom, maploc = depth$pos)
     } else {
         CNA.object = CNA( genomdat = depth$norm.depth, chrom = depth$chrom, maploc = depth$pos)
     }
