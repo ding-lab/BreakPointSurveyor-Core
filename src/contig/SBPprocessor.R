@@ -4,22 +4,24 @@
 #
 # Usage: Rscript SBPprocessor.R [-v] [-q qSBP.fn] [-o rSBP.fn] SBP.fn 
 #
+# Version 1.5 7/25/16 - Losing explicit reference to human and virus, using chromA and chromB instead
 # Version 1.1 5/15/15 - outputs qSBP to indicate paired breakpoint information
 # Version 1.0 5/12/15  
 #
-# process SBP (SAM BreakPoint) data to extract breakpoint positions as human, virus coordinates.
+# process SBP (SAM BreakPoint) data to extract breakpoint positions as chrom A and B coordinates,
+# where A < B by string comparison 
 # Two output datasets are produced:
-#   rSBP lists all unique breakpoints as human, virus coordinates
+#   rSBP lists all unique breakpoints as chrom A, B coordinates
 #   qSBP focuses on paired breakpoints (two or more breakpoints associated with one contig)
 # 
 # SBP.fn: List of SBP breakpoints.  
 # -o rSBP.fn: output for reduced (R format) SBP data.  Writes to stdout by default
 # -q qSBP.fn: output for paired breakpoints information.  Not generated if not specified.
 
-# Assumption is that breakpoints are human/virus, although other types of breakpoints will not break things.
-# we define as "human first" those segment pairs where the first rname does not begin with 'gi'
-# While this works well for human/virus breakpoints, the order of human-human or virus-virus
-# breakpoints is undefined.
+# We define as "A first" those segment pairs where the first rname < second rname 
+# This is appropriate for human/virus and human/human breakpoints and is consistent
+# with ordering in BPC and BPR files.  This will not work reliably with intra-chromosomal
+# translocations (where chrom A == chrom B)
 
 
 options("width"=180) # useful for debugging
@@ -81,19 +83,22 @@ parse_args = function() {
 #    16  left_rpos.Sb    128865729
 # x  17  right_rpos.Sb   128866602
 
-# Read SBP file and mark rows in which human occurs first (as Sa).  Convert all positions (gpos and rpos) to 1-index format
+# Read SBP file and mark rows in which chrom A first (which is unrelated to Sa and Sb).  
+# Convert all positions (gpos and rpos) to 1-index format
 # Retain only columns which are informative about breakpoints:
 # discard positions not corresponding to breakpoint (the junction between Sa and Sb) and is_primary.* columns.
 # query_name is also discarded here; it is referred to uniquely by contig.id.  
-# finally, convert Sa/Sb quantities to H/V as appropriate
-get.SBP.hv = function(sbp.fn) {
+# finally, convert Sa/Sb quantities to A/B as appropriate
+get.SBP.AB = function(sbp.fn) {
 
-# human.first indicates mapping human/virus to Sa/Sb
+# A.first defines mapping between Sa/Sb and chrom A, B
 # sbp.fn is in python-esque 0-index format.  Convert to R-ish 1-index format by adding 1 to all positions
     SBP = read.table(sbp.fn, sep="\t", header=TRUE)
 
-    # construct sbp.hv, which has human, virus breakpoint positions
-    SBP$human.first = !grepl("^gi", SBP$ref_name.Sa)
+    # construct sbp.AB, which has chrom A, B breakpoint positions
+    # SBP$A.first = !grepl("^gi", SBP$ref_name.Sa)  - old, this is how virus was defined
+    # note that typically chrom A will be human and chrom B virus.
+    SBP$A.first = as.character(SBP$ref_name.Sa) < as.character(SBP$ref_name.Sb)
 
     drop.cols = c("left_gpos.Sa", "left_rpos.Sa", "right_gpos.Sb", "right_rpos.Sb", "query_name", "is_primary.Sa", "is_primary.Sb")
     SBP = SBP[,!(names(SBP) %in% drop.cols)]
@@ -104,15 +109,15 @@ get.SBP.hv = function(sbp.fn) {
     SBP$left_gpos.Sb = SBP$left_gpos.Sb + 1
     SBP$left_rpos.Sb = SBP$left_rpos.Sb + 1
 
-    # now define human, virus quantities based on whether human or virus is Sa
-    SBP$h.rname = as.factor(ifelse(SBP$human.first, as.character(SBP$ref_name.Sa), as.character(SBP$ref_name.Sb)))
-    SBP$v.rname = as.factor(ifelse(SBP$human.first, as.character(SBP$ref_name.Sb), as.character(SBP$ref_name.Sa)))
-    SBP$h.bp.rpos = ifelse(SBP$human.first, SBP$right_rpos.Sa, SBP$left_rpos.Sb)
-    SBP$v.bp.rpos = ifelse(SBP$human.first, SBP$left_rpos.Sb, SBP$right_rpos.Sa)
-    SBP$h.bp.gpos = ifelse(SBP$human.first, SBP$right_gpos.Sa, SBP$left_gpos.Sb)
-    SBP$v.bp.gpos = ifelse(SBP$human.first, SBP$left_gpos.Sb, SBP$right_gpos.Sa)
-    SBP$h.is_forward = ifelse(SBP$human.first, SBP$is_forward.Sa, SBP$is_forward.Sb)
-    SBP$v.is_forward = ifelse(SBP$human.first, SBP$is_forward.Sb, SBP$is_forward.Sa)
+    # now define A, B quantities based on whether chrom A or chrom B is Sa (requiring A < B by string comparison)
+    SBP$A.rname = as.factor(ifelse(SBP$A.first, as.character(SBP$ref_name.Sa), as.character(SBP$ref_name.Sb)))
+    SBP$B.rname = as.factor(ifelse(SBP$A.first, as.character(SBP$ref_name.Sb), as.character(SBP$ref_name.Sa)))
+    SBP$A.bp.rpos = ifelse(SBP$A.first, SBP$right_rpos.Sa, SBP$left_rpos.Sb)
+    SBP$B.bp.rpos = ifelse(SBP$A.first, SBP$left_rpos.Sb, SBP$right_rpos.Sa)
+    SBP$A.bp.gpos = ifelse(SBP$A.first, SBP$right_gpos.Sa, SBP$left_gpos.Sb)
+    SBP$B.bp.gpos = ifelse(SBP$A.first, SBP$left_gpos.Sb, SBP$right_gpos.Sa)
+    SBP$A.is_forward = ifelse(SBP$A.first, SBP$is_forward.Sa, SBP$is_forward.Sb)
+    SBP$B.is_forward = ifelse(SBP$A.first, SBP$is_forward.Sb, SBP$is_forward.Sa)
 
     # and drop unneeded quantities
     drop.cols = c("ref_name.Sa", "is_forward.Sa", "right_gpos.Sa", "right_rpos.Sa", "ref_name.Sb", "is_forward.Sb", "left_gpos.Sb", "left_rpos.Sb")
@@ -121,54 +126,52 @@ get.SBP.hv = function(sbp.fn) {
     return(SBP)
 }
 
-# process SBP.hv data to obtain the reduced rSBP format.  
+# process SBP.AB data to obtain the reduced rSBP format.  
 # and only unique breakpoints - as defined by their reference position pairs - are retained
-get.rSBP = function(SBP.hv) {
-    return(unique(SBP.hv[,c("h.rname", "h.bp.rpos", "v.rname", "v.bp.rpos")]))
+get.rSBP = function(SBP.AB) {
+    return(unique(SBP.AB[,c("A.rname", "A.bp.rpos", "B.rname", "B.bp.rpos")]))
 }
-
-
 
 # See BreakPointParser.R, mark.segments() for details of how this works - the implementation of combining
 # paired breakpoints is similar to combining segment pairs 
-mark.pairs = function(SBP.hv) {
-    num.SBP = nrow(SBP.hv)
-    SBP.hv = SBP.hv[with(SBP.hv, order(bp.id)), ]
+mark.pairs = function(SBP.AB) {
+    num.SBP = nrow(SBP.AB)
+    SBP.AB = SBP.AB[with(SBP.AB, order(bp.id)), ]
 
-    # define columns which will help combine individual breakpoints into pairs of left (bpA), right (bpB) breakpoints 
-    SBP.hv$pair.id = seq(0,num.SBP-1)
+    # define columns which will help combine individual breakpoints into pairs of left (bpM), right (bpN) breakpoints 
+    SBP.AB$pair.id = seq(0,num.SBP-1)
 
     # stuff here deals with expanding mid BP (those with another BP on each end) into two pairs
-    SBP.hv$h.pos = rep.int("right", num.SBP)
-    SBP.hv$seg.type = rep.int("mid", num.SBP)
+    SBP.AB$A.pos = rep.int("right", num.SBP)
+    SBP.AB$seg.type = rep.int("mid", num.SBP)
 
     # now take care of first, last entries
-    SBP.hv$pair.id[1] = 1
-    SBP.hv$h.pos[1] = "left"
-    SBP.hv$seg.type[1] = "first"
-    SBP.hv$seg.type[num.SBP] = "last"
+    SBP.AB$pair.id[1] = 1
+    SBP.AB$A.pos[1] = "left"
+    SBP.AB$seg.type[1] = "first"
+    SBP.AB$seg.type[num.SBP] = "last"
 
     # "mid" entries are duplicated to be on left in next bp
-    SBP.mid = SBP.hv[SBP.hv$seg.type == "mid",]
+    SBP.mid = SBP.AB[SBP.AB$seg.type == "mid",]
     if (nrow(SBP.mid) > 0) {
-        SBP.mid$h.pos = "left"
+        SBP.mid$A.pos = "left"
         SBP.mid$pair.id = SBP.mid$pair.id + 1
-        SBP.hv = rbind(SBP.hv, SBP.mid)
+        SBP.AB = rbind(SBP.AB, SBP.mid)
     }
 
-    return(SBP.hv)
+    return(SBP.AB)
 }
 
 # qSBP reports on breakpoint pairs, wherein two (or more) breakpoints occur on same contig.
 #   for a contig with N > 1 breakpoints, N-1 qSBP rows generated
-# adjacent breakpoints labeled bp.A, bp.B.
+# In each breakpoint pair, breakpoints are labeled bpM and bpN.
 get.qSBP = function(SBP) {
 
 # returns:
 # contig.id
-# bpA.id, bpB.id - correspond to bp.id in SBP 
-# bpA.h.rpos, bpA.v.rpos, bpB.h.rpos, bpB.v.rpos
-# bpA.left.is_h, bpB.left.is_h - indicates whether left segment of each breakpoint is human 
+# bpM.id, bpN.id - correspond to bp.id in SBP 
+# bpM.A.rpos, bpM.B.rpos, bpN.A.rpos, bpN.B.rpos
+# bpM.left.is_A, bpN.left.is_A - indicates whether left segment of each breakpoint is chrom A
 
     # get count of repeated contig.ids.  http://stackoverflow.com/questions/18201074/find-how-many-times-duplicated-rows-repeat-in-r-data-frame
     contig.count = ddply(SBP,"contig.id",nrow)
@@ -180,26 +183,26 @@ get.qSBP = function(SBP) {
     if (nrow(SBP.paired) == 0) {
         return(NULL)
     }
-#    contig.id bp.id human.first h.rname                       v.rname h.bp.rpos v.bp.rpos h.bp.gpos v.bp.gpos h.is_forward v.is_forward
+#    contig.id bp.id A.first A.rname                       B.rname A.bp.rpos B.bp.rpos A.bp.gpos B.bp.gpos A.is_forward B.is_forward
 #6           6     1        TRUE      14 gi|310698439|ref|NC_001526.2|  68741695      3434       104       103         TRUE         TRUE
 #7           6     2       FALSE      14 gi|310698439|ref|NC_001526.2|  68683566      3979       645       648         TRUE         TRUE
 
     # Our aim now is to pair SBP (breakpoint) lines to create qSBP breakpoint pairs.  This approach is very similar to that in
-    # parse.pSBP in BreakPointParser.R: each breakpoint in one contig is assigned a pair.id, a horizontal position (bpA or bpB), and 
+    # parse.pSBP in BreakPointParser.R: each breakpoint in one contig is assigned a pair.id, a horizontal position (bpM or bpN), and 
     # a bp.type (first, mid, or last).  "mid" breakpoints occur in contigs with three or more breakpoints, and need to be paired 
     # with a preceeding breakpoint as well as a following breakpoint to form two pairs; to do this, they are duplicated.
 
     SBP.paired = ddply(SBP.paired, "contig.id", function(df) return( mark.pairs(df) ) )
 
     # now split into left (Sa) and right (Sb) segments, clean up, and merge
-    SBP.bpA = SBP.paired[SBP.paired$h.pos=="left",]  
-    SBP.bpB = SBP.paired[SBP.paired$h.pos=="right",]   # right segment
+    SBP.bpM = SBP.paired[SBP.paired$A.pos=="left",]  
+    SBP.bpN = SBP.paired[SBP.paired$A.pos=="right",]   # right segment
 
-    drop.cols = c("h.bp.gpos", "v.bp.gpos", "seg.type", "h.pos")
-    SBP.bpA = SBP.bpA[,!(names(SBP.bpA) %in% drop.cols)]
-    SBP.bpB = SBP.bpB[,!(names(SBP.bpB) %in% drop.cols)]
+    drop.cols = c("A.bp.gpos", "B.bp.gpos", "seg.type", "A.pos")
+    SBP.bpM = SBP.bpM[,!(names(SBP.bpM) %in% drop.cols)]
+    SBP.bpN = SBP.bpN[,!(names(SBP.bpN) %in% drop.cols)]
 
-    qSBP = merge(SBP.bpA, SBP.bpB, by=c("contig.id", "pair.id"), suffixes=c(".bpA", ".bpB"))
+    qSBP = merge(SBP.bpM, SBP.bpN, by=c("contig.id", "pair.id"), suffixes=c(".bpM", ".bpN"))
 
     return(qSBP)
 }
@@ -207,9 +210,9 @@ get.qSBP = function(SBP) {
 
 args = parse_args()
 
-SBP.hv = get.SBP.hv(args$SBP.fn)
-rSBP = get.rSBP(SBP.hv)
-qSBP = get.qSBP(SBP.hv)
+SBP.AB = get.SBP.AB(args$SBP.fn)
+rSBP = get.rSBP(SBP.AB)
+qSBP = get.qSBP(SBP.AB)
 
 # write rSBP to either file or stdout
 if (args$rSBP.fn == "stdout") {
