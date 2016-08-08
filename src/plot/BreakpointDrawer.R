@@ -91,12 +91,12 @@ parse_args = function() {
     pdf.out = get_bool_arg(args, "-P")
     no.commas = get_bool_arg(args, "-M")
 
-    alpha = get_val_arg(args, "-a", NULL)
+    alpha = as.numeric(get_val_arg(args, "-a", NULL))
     color = get_val_arg(args, "-c", NULL)
     fill = get_val_arg(args, "-f", NULL)
-    shape = get_val_arg(args, "-s", NULL)
+    shape = as.numeric(get_val_arg(args, "-s", NULL))
     linetype = get_val_arg(args, "-t", NULL)
-    size = get_val_arg(args, "-z", NULL)
+    size = as.numeric(get_val_arg(args, "-z", NULL))
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.ggp = args[length(args)];             args = args[-length(args)]
@@ -223,7 +223,7 @@ render.region = function(ggp, BPR, alpha=NA, color=NA, fill=NA) {
 render.segment = function(ggp, BPR, color=NA, alpha=NA, size=NA, linetype=NA) {  
     if (! is.null(BPR) && nrow(BPR)>0) {
         qSBP.data$contig.id = factor(qSBP.data$contig.id)
-        p = p + geom_segment(data = qSBP.data, aes(x=h.bp.rpos.bpA, y=v.bp.rpos.bpA, xend=h.bp.rpos.bpB, yend=v.bp.rpos.bpB, color=contig.id ), alpha=0.5)
+        p = p + geom_segment(data = qSBP.data, aes(x=A.bp.rpos.bpM, y=B.bp.rpos.bpM, xend=A.bp.rpos.bpN, yend=B.bp.rpos.bpN, color=contig.id ), alpha=0.5)
     }
 }
 

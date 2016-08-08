@@ -221,7 +221,9 @@ if (args$rSBP.fn == "stdout") {
     cat(paste("Writing rSBP to", args$rSBP.fn, "\n"))
     f = file(args$rSBP.fn)
 }
-write.table(rSBP, file = f, quote = FALSE, sep = "\t", row.names = FALSE, col.names = TRUE)
+
+# with col.names removed, this is in BPC format
+write.table(rSBP, file = f, quote = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE)
 
 # write qSBP only if interested in it.
 if (!is.null(args$qSBP.fn)) {
