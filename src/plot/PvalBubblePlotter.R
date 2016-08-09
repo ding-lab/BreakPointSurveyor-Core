@@ -132,7 +132,7 @@ plot.Pval = function(Pval.data, int.start, int.end, range.start, range.end, titl
     p = p + geom_rect(data=data.frame(foo=0), alpha=0.5, xmin=int.start, xmax=int.end, ymin=-1, ymax=5, fill="#4DAF4A", color="#4DAF4A", size=0.25)  
 
     myarrow = arrow(length=unit(0.1,"cm"), type="closed")
-    p = p + geom_segment(mapping=aes(x=arrow.start, xend=arrow.end, y=arrow.pos, yend=arrow.pos), arrow=myarrow, color='gray50', size=0.25, alpha=0.25, show_guide=FALSE)
+    p = p + geom_segment(mapping=aes(x=arrow.start, xend=arrow.end, y=arrow.pos, yend=arrow.pos), arrow=myarrow, color='gray50', size=0.25, alpha=0.25, show.legend=FALSE)
 
     p = p + geom_point(aes(x=gene.mid, y=0, color=regulated, size=logP.crop), alpha = 0.5)  # V2
 
