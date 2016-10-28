@@ -213,7 +213,7 @@ align.panels = function(target.ggp, template.ggp, axis, no.align=FALSE) {
 # if no.align = TRUE, assemble panels but do not align them (change their range or layout)
 assemble_plot = function(breakpoint.ggp, depth.A.ggp, depth.B.ggp, histogram.ggp, annotation.A.ggp, annotation.B.ggp, title.ggp, no.label=FALSE, no.align=FALSE) {
 
-    # get rid of y-axis titles on depth
+    # get rid of y-axis titles on depth and legends everywhere
     depth.A.ggp = depth.A.ggp + theme(axis.title.y = element_blank())
     depth.B.ggp = depth.B.ggp + theme(axis.title.x = element_blank())
 
@@ -295,12 +295,16 @@ if (!is.null(title_text))  {
 
 gray.ticks = theme(axis.ticks = element_line(color="gray50"))
 no.margin = theme(plot.margin=unit(c(0,0,0,0),"in"))
+no.legend = theme(legend.position="none")
+#no.legend = theme()
 
-breakpoint.ggp = breakpoint.ggp + theme(plot.margin=unit(c(0.125,0.125,0,0), "in")) # top, right, bottom, and left margins
-depth.A.ggp = depth.A.ggp + xlab(sprintf("Chr %s Position", args$chrom.A)) + no.margin
-depth.B.ggp = depth.B.ggp + theme( axis.text.y=element_text(angle=-90, hjust=0.5), axis.title.y = element_text(angle=-90)) + xlab(sprintf("Chr %s Position", args$chrom.B)) + coord_flip() + no.margin
-annotation.A.ggp = annotation.A.ggp + no.margin
-annotation.B.ggp = annotation.B.ggp + no.margin
+breakpoint.ggp = breakpoint.ggp + theme(plot.margin=unit(c(0.125,0.125,0,0), "in"))  + no.legend # top, right, bottom, and left margins
+depth.A.ggp = depth.A.ggp + xlab(sprintf("Chr %s Position", args$chrom.A)) + no.margin + no.legend
+depth.B.ggp = depth.B.ggp + theme( axis.text.y=element_text(angle=-90, hjust=0.5), 
+                                   axis.title.y = element_text(angle=-90)) + 
+                                   xlab(sprintf("Chr %s Position", args$chrom.B)) + coord_flip() + no.margin + no.legend
+annotation.A.ggp = annotation.A.ggp + no.margin + no.legend
+annotation.B.ggp = annotation.B.ggp + no.margin + no.legend
 
 if (args$no.label & !is.null(histogram.ggp)) {
     histogram.ggp = histogram.ggp + theme(axis.title = element_blank(), legend.position="none")

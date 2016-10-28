@@ -31,7 +31,8 @@ source_relative = function(source.fn) {
 #    print(paste("Sourcing",other.name,"from",script.name))
     source(other.name)
 }
-source_relative("BPS_Util.R")
+source_relative("../util/BPS_Util.R")
+source_relative("BPS_PlotUtil.R")
 source_relative("DepthUtil.R")
 
 
