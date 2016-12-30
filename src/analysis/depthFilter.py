@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+#
+# depthFilter.py: Evaluate read depth in subsection of chrom, subsampled to give reasonable output size, 
+#                 optimized for performance
+#
+# V3.2.  Discover chrom length automatically
 # V3.1.  Option to get depth by region or basepair implemented
 # V3.0.  Rewritten to use pysam 
 # V2.1.  Simple steps to optimize this.  More tips here: https://www.python.org/doc/essays/list2str/
@@ -122,7 +127,9 @@ def main():
     from optparse import OptionParser
     usage_text = """usage: %prog [options] chrom start end fn ...
         Parse alignment file and output read depth in format, "chrom pos depth"
-        Accepted fn file formats (sam, bam, cram) determined by filename extension.
+        chrom: name of reference sequence.  
+        start, end: start and end position.  end="ALL" defines end position of reference
+        fn: alignment filename. Accepted fn file formats (sam, bam, cram) determined by filename extension.
         """
     parser = OptionParser(usage_text, version="$Revision: 3.0 $")
     parser.add_option("-v", dest="verbose", action="store_true", help="verbose output")
@@ -138,14 +145,23 @@ def main():
     if (len(params) != 4):
         parser.error("Please pass BED and output filenames.")
 
-    chrom, start, end, fn = params[0], int(params[1]), int(params[2]), params[3]
+    chrom, start, end, fn = params[0], int(params[1]), params[2], params[3]
 
     if options.outfn == "stdout":
         o = sys.stdout
     else:
         o = open(options.outfn, "w")
 
+    print "opening", fn
     f = openAlignment(fn)
+
+    if chrom not in f.references:
+        parser.error("Unknown chrom name.  List of known chrom:\n" + str(f.references))
+
+    # discover chrom length if necessary
+    if end == "ALL":
+        end = f.lengths[f.references.index(chrom)]
+
     start_time = timeit.default_timer()
     (pos, depth) = getDepth(f, chrom, start, end, int(options.npts), int(options.stride_threshold))
     elapsed = timeit.default_timer() - start_time
