@@ -2,7 +2,7 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointRenderer.R [-v] [-P] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] [-M]
+# Usage: Rscript BreakpointDrawer.R [-v] [-P] [-l] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] [-M]
 #                [-a alpha][-c color][-f fill][-s shape][-t linetype][-z size] BP.fn breakpoint.ggp
 #
 #   Create or append various plots to breakpoint coordinate GGP file.  Chrom A coordinates are plotted
@@ -11,7 +11,7 @@
 #   Three types of plots supported:
 #   * "point" - points are drawn at positions given by BPC coordinates
 #   * "region" - rectangular region drawn at positions given by BPR data
-#   * "segment" - linear segments drawn at positions given by BPR data
+#   * "segment" - linear segments drawn at positions given by BPR data.  Unimplemented
 #
 # Input arguments:
 #
@@ -28,6 +28,7 @@
 #         Plot region is specified only if -G is not specified (i.e., creating new GGP)
 #         Filtering data may be prevented with -F.
 # -F: Do not filter data.  See above.
+# -l: Swap A, B columns in BPC or BPR, so pos.A = pos.B and vice versa
 # -p: plot.type: one of "point", "region", "segment"; these require BPC, BPR, BPR data files, resp.  "point" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 # -M: format genomic coordinates without commas 
@@ -90,13 +91,14 @@ parse_args = function() {
     plot.type = get_val_arg(args, "-p", "point")
     pdf.out = get_bool_arg(args, "-P")
     no.commas = get_bool_arg(args, "-M")
+    flip.ab = get_bool_arg(args, "-l")
 
-    alpha = as.numeric(get_val_arg(args, "-a", NULL))
+    alpha = as.numeric(get_val_arg(args, "-a", NA))
+    shape = as.numeric(get_val_arg(args, "-s", NA))
+    size = as.numeric(get_val_arg(args, "-z", NA))
     color = get_val_arg(args, "-c", NULL)
     fill = get_val_arg(args, "-f", NULL)
-    shape = as.numeric(get_val_arg(args, "-s", NULL))
     linetype = get_val_arg(args, "-t", NULL)
-    size = as.numeric(get_val_arg(args, "-z", NULL))
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.ggp = args[length(args)];             args = args[-length(args)]
@@ -107,7 +109,7 @@ parse_args = function() {
             'range.pos.B'=range.B$range.pos, 'range.chr.B'=range.B$range.chr, 
             'skip.data.filter'=skip.data.filter, 'in.ggp'=in.ggp, 'plot.type'=plot.type,
             'alpha'= alpha, 'color'= color, 'fill'= fill, 'shape'= shape, 'size'= size, 'linetype'=linetype,
-            'out.ggp'=out.ggp, 'data.fn' = data.fn, 'pdf.out'=pdf.out, 'no.commas'=no.commas
+            'out.ggp'=out.ggp, 'data.fn' = data.fn, 'pdf.out'=pdf.out, 'no.commas'=no.commas, 'flip.ab'=flip.ab
             )
     if (val$verbose) { print(val) }
 
@@ -116,7 +118,6 @@ parse_args = function() {
 
 make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL, no.commas=FALSE) {
     # define basic properties of Breakpoint Coordinates GGP object.
-    # TODO: see if this works.  It may be necessary to set some things at the end of plotting?
     ggp = ggplot() + xlab(NULL) + ylab(NULL) 
     
 # going to have problems calling coord_cartesian multiple times here.  Better to build up argument
@@ -149,7 +150,7 @@ make.breakpoint.GGP = function(range.pos.A = NULL, range.pos.B = NULL, no.commas
 #       when strand defined, aes(fill=strand)
 # qSBP: geom_segment.  aes(color=contig.id), alpha=0.5
 
-render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL) {
+render.point = function(ggp, BPC, alpha=NA, color=NULL, fill=NULL, shape=NA, size=NA) {
 # if alpha, shape, size, color are defined, their values are passed to corresponding arguments.  
 # if color is not defined, then color is passed as an aesthetic with data$attribute as value.
 # BPC: "chrom.A", "pos.A", "chrom.B", "pos.B", "attribute"
@@ -160,13 +161,13 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
     #   static arguments, e.g., color = ..., 
     args = list()   # first collect all static arguments, then add aes and data as arguments
     aes.args = list(x="pos.A", y="pos.B")
-    if (!is.null(alpha)) args$alpha = alpha
-    if (!is.null(shape)) args$shape = shape
-    if (!is.null(size)) args$size = size
+    if (!is.na(alpha)) args$alpha = alpha
+    if (!is.na(shape)) args$shape = shape
+    if (!is.na(size) != 0) args$size = size
     if (!is.null(color)) args$color = color
+    if (!is.null(fill)) args$fill = fill
     else { # if not specified, color is an aes with value given by attribute column
         aes.args$color = "attribute"
-        
     }
     args$data=BPC
 
@@ -191,7 +192,7 @@ render.point = function(ggp, BPC, alpha=NULL, color=NULL, shape=NULL, size=NULL)
 
 # Render region based on BPR data
 # names(BPR) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
-render.region = function(ggp, BPR, alpha=NA, color=NA, fill=NA) {
+render.region = function(ggp, BPR, alpha=NA, color=NULL, fill=NULL, size=NA) {
     # if alpha, fill, or color are defined, their values are passed to corresponding arguments.  
     # if color is not defined, then color is passed as an aesthetic with data$attribute as value.
     if (is.null(BPR)) return (ggp)
@@ -199,7 +200,8 @@ render.region = function(ggp, BPR, alpha=NA, color=NA, fill=NA) {
     args = list()   # first collect all static arguments, then add aes and data as arguments
     aes.args = list(xmin="pos.A.start", xmax="pos.A.end", ymin="pos.B.start", ymax="pos.B.end")
 
-    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.na(alpha)) args$alpha = alpha
+    if (!is.na(size)) args$size = size
     if (!is.null(fill)) args$fill = fill
     if (!is.null(color)) args$color = color
     else { # if not specified, color is an aes with value given by attribute column
@@ -220,7 +222,8 @@ render.region = function(ggp, BPR, alpha=NA, color=NA, fill=NA) {
     return(ggp)
 }
 
-render.segment = function(ggp, BPR, color=NA, alpha=NA, size=NA, linetype=NA) {  
+render.segment = function(ggp, BPR, color=NULL, alpha=NA, size=NA, linetype=NULL) {  
+    # TODO: Implement color, alpha, size, linetype selection
     if (! is.null(BPR) && nrow(BPR)>0) {
         qSBP.data$contig.id = factor(qSBP.data$contig.id)
         p = p + geom_segment(data = qSBP.data, aes(x=A.bp.rpos.bpM, y=B.bp.rpos.bpM, xend=A.bp.rpos.bpN, yend=B.bp.rpos.bpN, color=contig.id ), alpha=0.5)
@@ -236,22 +239,22 @@ if (is.null(args$in.ggp)) {
 }
 
 if (args$plot.type == "point") {
-    breakpoints.bpc = read.BPC(args$data.fn)
+    breakpoints.bpc = read.BPC(args$data.fn, args$flip.ab)
 
     if (!args$skip.data.filter) {
         breakpoints.bpc = filter.BPC(breakpoints.bpc, args$range.chr.A, args$range.pos.A, args$range.chr.B, args$range.pos.B)
     }
     cat(paste("Plotting ", nrow(breakpoints.bpc), " points\n"))
-    ggp = render.point(ggp, breakpoints.bpc, alpha=args$alpha, color=args$color, shape=args$shape, size=args$size)
+    ggp = render.point(ggp, breakpoints.bpc, alpha=args$alpha, color=args$color, fill=args$fill, shape=args$shape, size=args$size)
 
 } else if (args$plot.type == "region") {
-    breakpoints.bpr = read.BPR(args$data.fn)
+    breakpoints.bpr = read.BPR(args$data.fn, args$flip.ab)
 
     if (!args$skip.data.filter) {
         breakpoints.bpr = filter.BPR(breakpoints.bpr, args$range.chr.A, args$range.pos.A, args$range.chr.B, args$range.pos.B)
     }
     cat(paste("Plotting ", nrow(breakpoints.bpr), " regions\n"))
-    ggp = render.region(ggp, breakpoints.bpr, alpha=args$alpha, color=args$color, fill=args$fill)
+    ggp = render.region(ggp, breakpoints.bpr, alpha=args$alpha, color=args$color, fill=args$fill, size=args$size)
 
 } else if (args$plot.type == "segment") {
     print("Unimplemented")

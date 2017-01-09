@@ -2,14 +2,16 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript DepthRenderer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] 
-#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-b] [-C]
+# Usage: Rscript DepthDrawer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] 
+#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-b] [-C] [-y y.mid] [-j y.jitter]
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
-#   These values of plot.type are supported:
+#   Plot read depth (or related quantites) over a genomic region and add annotation to this plot.
+#
+#   These values of plot.type (which define the data types to be drawn or added) are supported:
 #   * "depth" - read depth is plotted as a sequence of points.  "depth" file format
 #   * "CBS" - Plot segments of uniform depth (circular binary segmentation). "depth" file format
-#   * "point" - points are drawn at pos given by posA. y-position is jittered, posB ignored. BPC input  UNIMPLEMENTED
+#   * "point" - points are drawn at pos given by posA. y-position is jittered, posB ignored. BPC input  
 #   * "vline" - vertical lines drawn at pos given by posA.  posB ignored.  BPC input
 #   * "region" - region at posA.start, posA.end with indefinite Y extent.  BPR input
 #   * "segment" - disconnected segments with X, Y endpoints given by A, B BPR regions, resp. (Used for precalculated CBS) 
@@ -44,9 +46,14 @@
 # -B: Annotate for panel B in assembled figure  This rotates text and reverses X scale.
 # -b: format genomic coordinates without commas 
 #
+# If plot.type is "point", vertical position is random within y.mid +/- y.jitter.  If not defined, both values
+# taken from range of plot
+# -y y.mid: define y.mid
+# -j y.jitter: define y.jitter
+#
 # The following constant attributes can be defined:
 #   -a alpha
-#   -c color
+#   -c color  [e.g., "-c gray10" or "-c #FF0000"]
 #   -f fill
 #   -s shape
 #   -t linetype
@@ -147,12 +154,15 @@ parse_args = function() {
     no.commas = get_bool_arg(args, "-b")
     color.by.chrom.N = get_bool_arg(args, "-C")
 
-    alpha = get_val_arg(args, "-a", NULL)
+    alpha = as.numeric(get_val_arg(args, "-a", NA))
     color = get_val_arg(args, "-c", NULL)
     fill = get_val_arg(args, "-f", NULL)
-    shape = get_val_arg(args, "-s", NULL)
+    shape = as.numeric(get_val_arg(args, "-s", NA))
     linetype = get_val_arg(args, "-t", NULL)
-    size = get_val_arg(args, "-z", NULL)
+    size = as.numeric(get_val_arg(args, "-z", NA))
+
+    y.mid = as.numeric(get_val_arg(args, "-y", NA))
+    y.jitter = as.numeric(get_val_arg(args, "-j", NA))
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.ggp = args[length(args)]; args = args[-length(args)]
@@ -163,7 +173,7 @@ parse_args = function() {
         'range.B.pos'=range.B$range.pos, 'range.B.chr'=range.B$range.chr, 
         'range.M.pos'=range.M$range.pos, 'range.M.chr'=range.M$range.chr, 
         'range.N.pos'=range.N$range.pos, 'range.N.chr'=range.N$range.chr, 
-        'panel.B'=panel.B, 
+        'panel.B'=panel.B, 'y.mid'=y.mid, 'y.jitter'=y.jitter,
         'verbose' = verbose, 'plot.log.depth' = plot.log.depth, 'num.reads' = num.reads,
         'read.length' = read.length, 'skip.data.filter' = skip.data.filter, 'in.ggp' = in.ggp,
         'plot.type' = plot.type, 'pdf.out' = pdf.out, 'alpha' = alpha, 'color' = color, 'fill' = fill,
@@ -192,16 +202,16 @@ make.depth.GGP = function(range.pos = NULL, panel.B = FALSE, no.commas=FALSE) {
     return(ggp)
 }
 
-render.depth = function(ggp, depth, ylabel, alpha=NULL, color=NULL, shape=NULL, size=NULL) {
+render.depth = function(ggp, depth, ylabel, alpha=NA, color=NULL, shape=NA, size=NA) {
 # if alpha, shape, size, color are defined, their values are passed to corresponding arguments.  
 # depth: "chrom", "pos", "depth", "norm.depth"
 
-    # see BreakpointRenderer.R:render.point() for details of how geom_point call constructed
+    # see BreakpointDrawer.R:render.point() for details of how geom_point call constructed
     args = list()   # first collect all static arguments, then add aes and data as arguments
     aes.args = list(x="pos", y="norm.depth")
-    if (!is.null(alpha)) args$alpha = alpha
-    if (!is.null(shape)) args$shape = shape
-    if (!is.null(size)) args$size = size
+    if (!is.na(alpha)) args$alpha = alpha
+    if (!is.na(shape)) args$shape = shape
+    if (!is.na(size)) args$size = size
     if (!is.null(color)) args$color = color
     args$data=depth
     args$mapping = do.call(aes_string, aes.args)  
@@ -213,7 +223,33 @@ render.depth = function(ggp, depth, ylabel, alpha=NULL, color=NULL, shape=NULL, 
     return(ggp)
 }
 
-render.vline = function(ggp, BPC, chrom.AB, alpha=NULL, color=NULL, linetype=NULL, size=NULL) {
+# draw points at X position given by BPC$pos and y position "jittered", placed randomly at y.mid +/- y.jitter
+render.point = function(ggp, BPC, chrom.AB, y.mid, y.jitter, alpha=NA, color=NULL, fill=NULL, shape=NA, size=NA) {
+# BPC: "chrom.A", "pos.A", "chrom.B", "pos.B", "attribute"
+    # see BreakpointDrawer.R:render.point() for details of how geom_point call constructed
+    args = list()   # first collect all static arguments, then add aes and data as arguments
+
+    if (chrom.AB == "A")
+        aes.args = list(x="pos.A", y=y.mid)
+    else
+        aes.args = list(x="pos.B", y=y.mid)
+    args$position = position_jitter(height=y.jitter, width=0)
+
+    if (!is.na(alpha)) args$alpha = alpha
+    if (!is.na(shape)) args$shape = shape
+    if (!is.na(size)) args$size = size
+    if (!is.null(color)) args$color = color
+    if (!is.null(fill)) args$fill = fill
+    args$data=BPC
+    args$mapping = do.call(aes_string, aes.args)  
+    # now call geom_point with all the arguments
+    ggp = ggp + do.call(geom_point, args)  
+# the simple call
+###    ggp = ggp + geom_point(data=depth, aes(x=pos, y=plot.depth), alpha=..., etc.) 
+    return(ggp)
+}
+
+render.vline = function(ggp, BPC, chrom.AB, alpha=NA, color=NULL, linetype=NULL, size=NA) {
 # if alpha, size, color, linetype are defined, their values are passed to corresponding arguments.  
 # if color is not defined, then color is passed as an aesthetic with data$attribute as value.
 # BPC: "chrom.A", "pos.A", "chrom.B", "pos.B", "attribute"
@@ -222,9 +258,9 @@ render.vline = function(ggp, BPC, chrom.AB, alpha=NULL, color=NULL, linetype=NUL
         aes.args = list(xintercept="pos.A")
     else
         aes.args = list(xintercept="pos.B")
-    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.na(alpha)) args$alpha = alpha
     if (!is.null(linetype)) args$linetype = linetype
-    if (!is.null(size)) args$size = size
+    if (!is.na(size)) args$size = size
     if (!is.null(color)) args$color = color
     else { # if not specified, color is an aes with value given by attribute column
         aes.args$color = "attribute"
@@ -240,7 +276,7 @@ render.vline = function(ggp, BPC, chrom.AB, alpha=NULL, color=NULL, linetype=NUL
 
 # Render region based on BPR data
 # names(BPR) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
-render.region = function(ggp, BPR, chrom.AB, alpha=NA, color=NA, fill=NA) {
+render.region = function(ggp, BPR, chrom.AB, alpha=NA, color=NULL, fill=NULL) {
     # if alpha, fill, or color are defined, their values are passed to corresponding arguments.  
     # if fill is not defined, then fill is passed as an aesthetic with data$attribute as value.
     if (is.null(BPR)) return (ggp)
@@ -252,7 +288,7 @@ render.region = function(ggp, BPR, chrom.AB, alpha=NA, color=NA, fill=NA) {
         aes.args = list(xmin="pos.B.start", xmax="pos.B.end", ymin=-Inf, ymax=Inf)
     }
 
-    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.na(alpha)) args$alpha = alpha
     if (!is.null(color)) args$color = color
     if (!is.null(fill)) args$fill = fill
     else { # if not specified, fill is an aes with value given by attribute column
@@ -272,14 +308,14 @@ render.region = function(ggp, BPR, chrom.AB, alpha=NA, color=NA, fill=NA) {
     return(ggp)
 }
 
-render.CBS = function(ggp, CBS, alpha=NULL, color=NULL, linetype=NULL, size=NULL) {
+render.CBS = function(ggp, CBS, alpha=NA, color=NULL, linetype=NULL, size=NA) {
 # if alpha, size, color, linetype are defined, their values are passed to corresponding arguments.  
 #  CBS: chrom, start, end, seg.mean, pos, g
     args = list()   
     aes.args = list(x="start", xend="end", y="seg.mean", yend="seg.mean", group="g")
-    if (!is.null(alpha)) args$alpha = alpha
+    if (!is.na(alpha)) args$alpha = alpha
     if (!is.null(linetype)) args$linetype = linetype
-    if (!is.null(size)) args$size = size
+    if (!is.na(size)) args$size = size
     if (!is.null(color)) args$color = color
     args$data=CBS
     args$mapping = do.call(aes_string, aes.args)  
@@ -326,8 +362,22 @@ if (args$plot.type == "depth" | args$plot.type == "CBS") {
                 breakpoints$attribute = breakpoints$chrom.A
         }
 
-        if (args$plot.type == "point") {  # will we ever use this?
-            stop("Unimplemented")
+        if (args$plot.type == "point") {  
+            # Points have a random Y position y.pos +/- y.jitter
+            # obtain y.pos and jitter range from existing range of plot
+            # This can be optionally specified at command line
+            # See BreakpointSurveyAssembler.R:align_X_range() for details about accessing range.
+            #   requires ggplot2 >= 2.2.0
+
+            y.range = ggplot_build(ggp)$layout$panel_ranges[[1]]$y.range
+            y.jitter = (y.range[2] - y.range[1]) / 2
+            y.mid = y.range[1] + y.jitter
+
+            y.mid = if (is.na(args$y.mid)) y.mid else args$y.mid
+            y.jitter = if (is.na(args$y.jitter)) y.jitter else args$y.jitter
+
+            ggp = render.point(ggp, breakpoints, args$chrom.AB, y.mid, y.jitter, 
+                alpha=args$alpha, color=args$color, shape=args$shape, size=args$size)
         } else { # (plot.type == "vline")
             ggp = render.vline(ggp, breakpoints, args$chrom.AB, alpha=args$alpha, color=args$color, linetype=args$linetype, size=args$size)
         }

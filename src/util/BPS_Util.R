@@ -52,13 +52,22 @@ parse.range.str = function(chrarg) {
 }
 
 # reads in a BPC file which specifies breakpoint coordinates with optional attributes column.
-read.BPC = function(BPC.fn) {
+# flip.ab is an optional attribute, if true swaps columns A <-> B
+read.BPC = function(BPC.fn, flip.ab=FALSE) {
     data = read.table(BPC.fn, sep='\t')
     if (ncol(data) == 4) {
-        names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B")
+        if (!flip.ab) {
+            names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B")
+        } else {
+            names(data) = c("chrom.B", "pos.B", "chrom.A", "pos.A")
+        }
         data$attribute = "default"
     } else if (ncol(data) == 5) {
-        names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B", "attribute")
+        if (!flip.ab) {
+            names(data) = c("chrom.A", "pos.A", "chrom.B", "pos.B", "attribute")
+        } else {
+            names(data) = c("chrom.B", "pos.B", "chrom.A", "pos.A", "attribute")
+        }
     } else {
         stop("Unexpected number of rows in ", BPC.fn)
     }
@@ -67,13 +76,22 @@ read.BPC = function(BPC.fn) {
 }
 
 # * BPR: chrom.A, pos.A.start, pos.A.end, chrom.B, pos.B.start, pos.B.end, [attribute] 
-read.BPR = function(BPR.fn) {
+# flip.ab is an optional attribute, if true swaps columns A <-> B
+read.BPR = function(BPR.fn, flip.ab = FALSE) {
     data = read.table(BPR.fn, sep='\t')
     if (ncol(data) == 6) {
-        names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end")
+        if (!flip.ab) {
+            names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end")
+        } else {
+            names(data) = c("chrom.B", "pos.B.start", "pos.B.end", "chrom.A", "pos.A.start", "pos.A.end")
+        }
         data$attribute = "default"
     } else if (ncol(data) == 7) {
-        names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
+        if (!flip.ab) {
+            names(data) = c("chrom.A", "pos.A.start", "pos.A.end", "chrom.B", "pos.B.start", "pos.B.end", "attribute")
+        } else {
+            names(data) = c("chrom.B", "pos.B.start", "pos.B.end", "chrom.A", "pos.A.start", "pos.A.end", "attribute")
+        }
     } else {
         stop("Unexpected number of rows in ", BPR.fn)
     }

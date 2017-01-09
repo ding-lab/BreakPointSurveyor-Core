@@ -99,25 +99,35 @@ parse_args = function() {
 # details of .gb and .gt objects can be obtained with print(str(foo))
 # .ggp and .gt objects can be visualized with grid.draw(foo)
 
+# Note, starting ggplot2 2.2.0, output of ggplot_build changed: now, consider target.gb$layout 
+#   rather than old target.gb$panel
+# see https://github.com/tidyverse/ggplot2/commit/06037a9fe08f572e5fbf58e32c7c5e24bb8d24da?diff=split#diff-b6a51c1de2e5c72523422829ed3adaa6
+
 # set range and ticks in X direction.  Return target.gb
 align_X_range = function(target.gb, template.gb) {
-    target.gb$panel$ranges[[1]]$x.range = template.gb$panel$ranges[[1]]$x.range
-    target.gb$panel$ranges[[1]]$x.labels = template.gb$panel$ranges[[1]]$x.labels
-    target.gb$panel$ranges[[1]]$x.major = template.gb$panel$ranges[[1]]$x.major
-    target.gb$panel$ranges[[1]]$x.minor = template.gb$panel$ranges[[1]]$x.minor
-    target.gb$panel$ranges[[1]]$x.major_source = template.gb$panel$ranges[[1]]$x.major_source
-    target.gb$panel$ranges[[1]]$x.minor_source = template.gb$panel$ranges[[1]]$x.minor_source
+    # print(template.gb$panel$ranges[[1]]$x.range) -- prior to ggplot 2.2.0
+    # print(template.gb$layout$panel_ranges[[1]]$x.range)  -- New in ggplot 2.2.0
+
+    template.ranges = template.gb$layout$panel_ranges[[1]]
+
+    target.gb$layout$panel_ranges[[1]]$x.range = template.ranges$x.range
+    target.gb$layout$panel_ranges[[1]]$x.labels = template.ranges$x.labels
+    target.gb$layout$panel_ranges[[1]]$x.major = template.ranges$x.major
+    target.gb$layout$panel_ranges[[1]]$x.minor = template.ranges$x.minor
+    target.gb$layout$panel_ranges[[1]]$x.major_source = template.ranges$x.major_source
+    target.gb$layout$panel_ranges[[1]]$x.minor_source = template.ranges$x.minor_source
     return(target.gb)
 }
 
 # set range and ticks in Y direction.  Return target.gb
 align_Y_range = function(target.gb, template.gb) {
-    target.gb$panel$ranges[[1]]$y.range = template.gb$panel$ranges[[1]]$y.range
-    target.gb$panel$ranges[[1]]$y.labels = template.gb$panel$ranges[[1]]$y.labels
-    target.gb$panel$ranges[[1]]$y.major = template.gb$panel$ranges[[1]]$y.major
-    target.gb$panel$ranges[[1]]$y.minor = template.gb$panel$ranges[[1]]$y.minor
-    target.gb$panel$ranges[[1]]$y.major_source = template.gb$panel$ranges[[1]]$y.major_source
-    target.gb$panel$ranges[[1]]$y.minor_source = template.gb$panel$ranges[[1]]$y.minor_source
+    template.ranges = template.gb$layout$panel_ranges[[1]]
+    target.gb$layout$panel_ranges[[1]]$y.range = template.ranges$y.range
+    target.gb$layout$panel_ranges[[1]]$y.labels = template.ranges$y.labels
+    target.gb$layout$panel_ranges[[1]]$y.major = template.ranges$y.major
+    target.gb$layout$panel_ranges[[1]]$y.minor = template.ranges$y.minor
+    target.gb$layout$panel_ranges[[1]]$y.major_source = template.ranges$y.major_source
+    target.gb$layout$panel_ranges[[1]]$y.minor_source = template.ranges$y.minor_source
     return(target.gb)
 }
 

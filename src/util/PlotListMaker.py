@@ -105,11 +105,15 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
         rA_start, rA_end = fai.crop(chromA, posA_start - context, posA_end + context)
         rB_start, rB_end = fai.crop(chromB, posB_start - context, posB_end + context)
 
-        #o.write('\t'.join("chr1", "pos1", "chr2", "pos2"))
-        if (str(chromA) < str(chromB)):
-            o.write('\t'.join( map(str, (barcode, event_name, chromA, posA_start, posA_end, rA_start, rA_end, chromB, posB_start, posB_end, rB_start, rB_end)) ))
+        # Default order of columns is given by BPR/BPC convention: chromA < chromB using alphabetical comparison.
+        # flip_ab (-l) reverses this order
+        # XOR operator: True ^ True = False, True ^ False = True, False ^ True = True, False ^ False = False
+        a_then_b = (str(chromA) < str(chromB)) ^ options.flip_ab
+        if a_then_b:
+            cols = (barcode, event_name, chromA, posA_start, posA_end, rA_start, rA_end, chromB, posB_start, posB_end, rB_start, rB_end)
         else:
-            o.write('\t'.join( map(str, (barcode, event_name, chromB, posB_start, posB_end, rB_start, rB_end, chromA, posA_start, posA_end, rA_start, rA_end)) ))
+            cols = (barcode, event_name, chromB, posB_start, posB_end, rB_start, rB_end, chromA, posA_start, posA_end, rA_start, rA_end)
+        o.write('\t'.join( map(str, cols) ) )
         o.write('\n')
 
 def main():
@@ -133,6 +137,7 @@ def main():
     parser.add_option("-p", dest="chrom_prefix", default="", help="String before chrom name in event name, for legibility")
     parser.add_option("-H", dest="write_header", action="store_true", help="Write column headers in output")
     parser.add_option("-N", dest="chrom_keep", default="AB", help="One of AB, A, B, X; which chrom names to include in name, X for none")
+    parser.add_option("-l", dest="flip_ab", action="store_true", default=False, help="Swap chrom A and B ")
 
     (options, params) = parser.parse_args()
 
