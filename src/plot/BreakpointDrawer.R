@@ -28,7 +28,7 @@
 #         Plot region is specified only if -G is not specified (i.e., creating new GGP)
 #         Filtering data may be prevented with -F.
 # -F: Do not filter data.  See above.
-# -l: Swap A, B columns in BPC or BPR, so pos.A = pos.B and vice versa
+# -l: Swap A, B columns when reading in BPC or BPR, so chrom A > chrom B by string comparison
 # -p: plot.type: one of "point", "region", "segment"; these require BPC, BPR, BPR data files, resp.  "point" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 # -M: format genomic coordinates without commas 
