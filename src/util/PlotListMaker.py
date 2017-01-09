@@ -3,8 +3,9 @@
 
 # Create a Breakpoint Surveyor PlotList file from Breakpoint Coordinate (BPC) or Breakpoint Region (BPR) data
 # Each line in a PlotList corresponds to one plot to be generated.  
-# Breakpoints correspond to a coordinate A, B, with A and B typically on different chromosome 
-#   (note that A, B can be same, and B can be a virus; also, A < B in a string comparison sense)
+# Breakpoints correspond to breakpoint coordinates A, B, with A and B typically on different chromosome 
+#  * A and B chrom can be the same, and either can be a virus 
+#  * by default chrom A < chrom B in a string comparison sense; this is reversed with -l flag
 # Plots are generated around some events of interest (e.g. SV regions), and plot ranges are given by event regions +/- "context" distance
 # PlotList is TSV format with the following columns,
 #  * barcode
