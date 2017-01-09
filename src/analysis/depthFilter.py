@@ -68,11 +68,6 @@ def getStride(start, end, npts):
         if s == 0: s = 1
     return s
 
-#cramd = "/gscmnt/gc2500/dinglab/1000G_svtrio/data_collections/hgsv_sv_discovery/NA19238/high_cov_alignment/"
-#cram = cramd + "NA19238.alt_bwamem_GRCh38DH.20150715.YRI.high_coverage.cram"
-#bam = cramd + "NA19238.alt_bwamem_GRCh38DH.20150715.YRI.high_coverage.cram.bam"
-#ref = "/gscmnt/gc2500/dinglab/1000G_svtrio/data_collections/reference/GRCh38_full_analysis_set_plus_decoy_hla.fa"
-
 def getDepthByRegion(alignmentFile, chrom, start, end, stride):
     """
     Evaluate the read depth in alignmentFile between start and end positions, subsampled every stride postions.
@@ -128,7 +123,7 @@ def main():
     usage_text = """usage: %prog [options] chrom start end fn ...
         Parse alignment file and output read depth in format, "chrom pos depth"
         chrom: name of reference sequence.  
-        start, end: start and end position.  end="ALL" defines end position of reference
+        start, end: start and end position.  end="END" obtains end position from reference
         fn: alignment filename. Accepted fn file formats (sam, bam, cram) determined by filename extension.
         """
     parser = OptionParser(usage_text, version="$Revision: 3.0 $")
@@ -159,8 +154,10 @@ def main():
         parser.error("Unknown chrom name.  List of known chrom:\n" + str(f.references))
 
     # discover chrom length if necessary
-    if end == "ALL":
+    if end == "END":
         end = f.lengths[f.references.index(chrom)]
+    else:
+        end = int(end)
 
     start_time = timeit.default_timer()
     (pos, depth) = getDepth(f, chrom, start, end, int(options.npts), int(options.stride_threshold))
@@ -169,10 +166,6 @@ def main():
     writeDepth(chrom, pos, depth, o)
     if options.timing:
         sys.stderr.write("Elapsed time %0.3f sec\n" % elapsed)
-
-#
-#    filterDepth(f, o, depth_filter, options)
-#    o.close()
 
 if __name__ == '__main__':
     main()
