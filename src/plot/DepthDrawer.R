@@ -2,8 +2,8 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript DepthDrawer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] 
-#                [-u num.reads] [-l read.length] [-m chrom] [-L] [-B] [-b] [-C] [-y y.mid] [-j y.jitter]
+# Usage: Rscript DepthDrawer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] [-l]
+#                [-u num.reads] [-n read.length] [-m chrom] [-L] [-B] [-b] [-C] [-y y.mid] [-j y.jitter]
 #                [-a alpha] [-c color] [-f fill] [-s shape] [-z size] [-t linetype] data.fn out.ggp
 #
 #   Plot read depth (or related quantites) over a genomic region and add annotation to this plot.
@@ -25,7 +25,7 @@
 #
 # -L: Plot read depth as log2(depth / <depth>), where <depth> is the median read depth
 # -u: number of reads (typically mapped) in BAM file.  Necessary for normalizing to copy number
-# -l: read length.  Necessary for normalizing to copy number
+# -n: read length.  Necessary for normalizing to copy number
 #
 # -m chrom: if plotting point or region from BPC or BPR data, resp., define whether using chrom A or B.  "A" is default.
 # -M: Define range for this chromosome, specified as "C" or "C:r-s", where C is chromosome name
@@ -39,6 +39,7 @@
 # -C: Use value of "other" (chrom N) chromosome as color for BPC/BPR-based annotation.  Attributes in those files or -c 
 #     will override this.
 # -F: Do not filter data for chrom M.  See above.
+# -l: Swap A, B columns when reading in BPC or BPR, so chrom A > chrom B by string comparison
 #
 # -p: plot.type: one of "depth", "point", or "region"; these require depth, BPC, BPR data files, resp.  "depth" is default.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
@@ -81,7 +82,7 @@
 # log2 scaling is given as log2(depth/D), where D is median depth of the filtered dataset.
 #
 # log2 scaling is used when -L flag is set.
-# If not log2: if both num.reads and read.length are defined (-u -l) then plot copy number
+# If not log2: if both num.reads and read.length are defined (-u -n) then plot copy number
 #   otherwise, plot read depth
 #
 # Specifying chrom and range for BPC/BPR files (TODO: simplify and integrate details below)
@@ -133,7 +134,7 @@ parse_args = function() {
     range.N = parse.range.str(get_val_arg(args, "-N", NULL))  
     plot.log.depth = get_bool_arg(args, "-L")
     num.reads = as.numeric(get_val_arg(args, "-u", NA))
-    read.length = as.numeric(get_val_arg(args, "-l", NA))
+    read.length = as.numeric(get_val_arg(args, "-n", NA))
     chrom.AB = get_val_arg(args, "-m", "A")
     if (! chrom.AB %in% c("A", "B")) {
         stop("-m argument must be either A or B")
@@ -153,6 +154,7 @@ parse_args = function() {
     panel.B = get_bool_arg(args, "-B")
     no.commas = get_bool_arg(args, "-b")
     color.by.chrom.N = get_bool_arg(args, "-C")
+    flip.ab = get_bool_arg(args, "-l")
 
     alpha = as.numeric(get_val_arg(args, "-a", NA))
     color = get_val_arg(args, "-c", NULL)
@@ -178,7 +180,7 @@ parse_args = function() {
         'read.length' = read.length, 'skip.data.filter' = skip.data.filter, 'in.ggp' = in.ggp,
         'plot.type' = plot.type, 'pdf.out' = pdf.out, 'alpha' = alpha, 'color' = color, 'fill' = fill,
         'shape' = shape, 'size' = size, 'linetype'=linetype, 'out.ggp' = out.ggp, 'data.fn' = data.fn,
-        'chrom.AB' = chrom.AB, 'no.commas'=no.commas, 'color.by.chrom.N'=color.by.chrom.N )
+        'chrom.AB' = chrom.AB, 'no.commas'=no.commas, 'color.by.chrom.N'=color.by.chrom.N, 'flip.ab'=flip.ab )
     if (val$verbose) { print(val) }
 
     return (val)
@@ -349,7 +351,7 @@ if (args$plot.type == "depth" | args$plot.type == "CBS") {
     }
 
 } else if (args$plot.type == "point" | args$plot.type == "vline") {
-    breakpoints = read.BPC(args$data.fn)
+    breakpoints = read.BPC(args$data.fn, args$flip.ab)
     if (!args$skip.data.filter) {
         breakpoints = filter.BPC(breakpoints, args$range.A.chr, args$range.A.pos, args$range.B.chr, args$range.B.pos)
     }
@@ -383,7 +385,7 @@ if (args$plot.type == "depth" | args$plot.type == "CBS") {
         }
     }
 } else if (args$plot.type == "region" ) {
-    breakpoints = read.BPR(args$data.fn)
+    breakpoints = read.BPR(args$data.fn, args$flip.ab)
     if (!args$skip.data.filter) {
         breakpoints = filter.BPR(breakpoints, args$range.A.chr, args$range.A.pos, args$range.B.chr, args$range.B.pos)
     }
