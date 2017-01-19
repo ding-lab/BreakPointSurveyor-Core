@@ -6,9 +6,8 @@
 #               [-t title] [-h height] [-w width] [-c chrom.A] [-C chrom.B] [-L] [-b] [-d marks.A] [-D marks.B] 
 #               breakpoint.ggp depth.A.ggp depth.B.ggp out.pdf
 #
-# Read in various BreakpointSurveyor GGP objects, assemble them into composite figure, and write to PDF
-# in cases where there are no features to annotate (e.g., no genes in range of interest) 
-# no annotation.ggp file is passed.  
+# Read in various BreakpointSurveyor GGP objects, assemble them into composite figure, and write to PDF.
+# In cases where there are no features to annotate (e.g., no genes in range of interest)  no annotation.ggp file is passed.  
 #
 # Input arguments:
 # -v: verbose
@@ -19,7 +18,7 @@
 #         they are aligned correctly.  argument marks.A, marks.B are comma-separated lists genomic position of marks,
 #         (e.g., "1000,2000,3000")
 # -t: title of plot
-# -c, -C: chromosome name (e.g. "11" or "X")
+# -c, -C: chromosome name (e.g. "11" or "X"), for axes labels only
 # -h, -w: height, width of PDF output in inches
 #
 # Layout: 2D breakpoint plot in upper left panel, with Chrom A/B details below/to the left of it, respectively.  Optional
@@ -306,13 +305,14 @@ if (!is.null(title_text))  {
 gray.ticks = theme(axis.ticks = element_line(color="gray50"))
 no.margin = theme(plot.margin=unit(c(0,0,0,0),"in"))
 no.legend = theme(legend.position="none")
-#no.legend = theme()
+no.axis.labels = theme(axis.ticks = element_blank(), axis.text = element_blank())
+breakpoint.margins = theme(plot.margin=unit(c(0.125,0.125,0,0), "in")) # top, right, bottom, and left margins
 
-breakpoint.ggp = breakpoint.ggp + theme(plot.margin=unit(c(0.125,0.125,0,0), "in"))  + no.legend # top, right, bottom, and left margins
-depth.A.ggp = depth.A.ggp + xlab(sprintf("Chr %s Position", args$chrom.A)) + no.margin + no.legend
+breakpoint.ggp = breakpoint.ggp + breakpoint.margins + no.legend + no.axis.labels
+depth.A.ggp = depth.A.ggp + xlab(sprintf("%s Pos", args$chrom.A)) + no.margin + no.legend
 depth.B.ggp = depth.B.ggp + theme( axis.text.y=element_text(angle=-90, hjust=0.5), 
                                    axis.title.y = element_text(angle=-90)) + 
-                                   xlab(sprintf("Chr %s Position", args$chrom.B)) + coord_flip() + no.margin + no.legend
+                                   xlab(sprintf("%s Pos", args$chrom.B)) + coord_flip() + no.margin + no.legend
 annotation.A.ggp = annotation.A.ggp + no.margin + no.legend
 annotation.B.ggp = annotation.B.ggp + no.margin + no.legend
 
