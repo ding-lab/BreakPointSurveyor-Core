@@ -1,15 +1,17 @@
-# Usage: Rscript HistogramDrawer.R [-v] [-n num.reads] [-l read.length] [-N nbin] [-m hist.max] [-d] [-P]
-#       depth.A.fn depth.B.fn out.ggp
+# Usage: Rscript HistogramDrawer.R [-v] [-u num.reads] [-n read.length] [-N nbin] [-m hist.max] [-d] [-P]
+#       [-e names] depth.A.fn depth.B.fn out.ggp
 #
 # create a histogram of read depth (or estimated copy number) for chrom A and B
 # These histograms are constructed from read depth data
-# Copy number is obtain by normalizing read depth by (num.reads * read.length) / 2 * #bp_in_genome 
+# Copy number is obtained by normalizing read depth by (num.reads * read.length) / 2 * #bp_in_genome 
 # GGP object saved to file given by out.ggp
 #
-# -n num.reads: number of reads in BAM (either total or mapped), typically obtained from .flagstat file
-# -l read.length: average read length (from BAM)
+# -u num.reads: number of reads in BAM (either total or mapped), typically obtained from .flagstat file
+#               Necessary for normalizing to copy number
+# -n read.length: average read length (from BAM)
 # -N nbin: number of bins in histogram.  Default 50
 # -m hist.max: max cutoff for read depth / copy number for histogram.
+# -e names: comma-separated list of labels for legend
 # -v: write verbose output
 # -d: draw smooth density plot instead of histogram
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
@@ -41,8 +43,9 @@ parse_args = function() {
 
     # optional arguments.  Arguments being converted to numbers have NA as default
     verbose = get_bool_arg(args, "-v")
-    num.reads = get_val_arg(args, "-n", NA)
-    read.length = get_val_arg(args, "-l", NA)
+    num.reads = get_val_arg(args, "-u", NA)
+    read.length = get_val_arg(args, "-n", NA)
+    legend.names = unlist(strsplit(get_val_arg(args, "-e", "Chrom A,Chrom B"), split=","))
     nbin = get_val_arg(args, "-N", 50)
     hist.max = get_val_arg(args, "-m", NA)
     #if (hist.max == "NA") hist.max = NA     # suppress warnings when "NA" is passed to hist.max as an argument
@@ -51,19 +54,15 @@ parse_args = function() {
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.ggp = args[length(args)];           args = args[-length(args)]
-    depth.A.fn = args[length(args)];        args = args[-length(args)]
     depth.B.fn = args[length(args)];        args = args[-length(args)]
+    depth.A.fn = args[length(args)];        args = args[-length(args)]
 
     val = list( 'verbose' = verbose, 'num.reads' = as.numeric(num.reads), 'read.length' = as.numeric(read.length), 'nbin' = as.numeric(nbin),
                 'hist.max' = as.numeric(hist.max), 'out.ggp' = out.ggp, 'depth.A.fn' = depth.A.fn, 'pdf.out'=pdf.out,
-                'depth.B.fn' = depth.B.fn, 'do.density'=do.density)
+                'depth.B.fn' = depth.B.fn, 'do.density'=do.density, 'legend.names'=legend.names)
     if (val$verbose) { print(val) }
     return (val)
 }
-
-# read in depth data for all files listed in array fn.list
-# name.list gives names which identify histogram in legend
-# filter.list contains one list for each file, with fields chrom, start, and end
 
 # Read in depth data for a set of files, optionally filter and normalize, and combine into
 # single dataset.
@@ -87,18 +86,6 @@ get.histogram.data = function(data.list, num.reads=NULL, read.length=NULL) {
         depth$name = ds$name
         histogram.df = rbind(histogram.df, depth)
     }
-### OLD ###
-###    # norm.depth is the average read depth per 2 x copy number
-###    norm.depth = estimated.depth(num.reads, read.length)
-###    for (i in 1:length(fn.list)) {
-###        fn=fn.list[i]
-###        filter = filter.list[[i]]  # filter fields: chrom, start, end
-###        # pre-calculate average depth and pass that.  Filter fields are optional, skip them.
-###        d = get.copy.number(fn, norm.depth, filter[[1]], filter[[2]], filter[[3]])
-###        d$fn = fn
-###        d$name = name.list[i]
-###        histogram.df = rbind(histogram.df, d)
-###    }
     # relying on fact that method is same for all DS
     return(list("histogram.df"=histogram.df, "method"=data$method))
 }
@@ -124,7 +111,7 @@ render.histogram = function(histogram.df, x.label, nbin, hist.max, do.density) {
     ggp = ggp + theme_bw()
     ggp = ggp + theme(legend.position=c(0.8,0.8), legend.title=element_text(size=6), legend.text=element_text(size=6), 
             axis.text = element_text(size=6), axis.title=element_text(size=6), legend.key.size=unit(1,"mm"))
-            #legend.title=element_blank()) 
+    ggp = ggp + theme(legend.title=element_blank()) 
     ggp = ggp + get.fill.scale()
     return(ggp)
 }
@@ -133,7 +120,7 @@ args = parse_args()
 
 # data.list defines the filename, label, and filter (if any) of each dataset in histogram.
 # currently we only have two datasets (depth A and depth B) and these are not being filtered.
-data.list = list(  list(fn=args$depth.A.fn, name="Chrom A", filter=NULL), list(fn=args$depth.B.fn, name="Chrom B", filter=NULL))
+data.list = list(  list(fn=args$depth.A.fn, name=args$legend.names[1], filter=NULL), list(fn=args$depth.B.fn, name=args$legend.names[2], filter=NULL))
 
 data = get.histogram.data(data.list, args$num.reads, args$read.length)
 ggp = render.histogram(data$histogram.df, data$method, args$nbin, args$hist.max, do.density=args$do.density)
