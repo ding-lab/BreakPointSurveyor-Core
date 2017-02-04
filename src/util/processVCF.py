@@ -4,6 +4,8 @@
 # mwyczalk@genome.wustl.edu
 # The Genome Institute
 
+# Read VCF file and write coordinates of features in various formats
+
 import vcf # http://pyvcf.readthedocs.io/en/latest/API.html
 import sys
 
