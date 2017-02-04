@@ -21,7 +21,7 @@
 # -V: Retain only human-virus breakpoints, with virus "chromosome" identified by virus.prefix, below
 # -p virus.prefix: string identifying virus reference.  Default 'gi'
 #
-# BPR and BPC file format descriptions: $BPS_CORE/doc/BPC_BPR_FileFormat.txt
+# BPR and BPC file format descriptions: doc/FileFormat.txt
 
 options("width"=180) # useful for debugging
 

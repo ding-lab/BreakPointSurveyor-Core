@@ -4,7 +4,7 @@
 #
 # Usage: Rscript RPKM_Joiner.R [-v] barcodes.dat out.fn
 
-# Process all RPKM files conbine them into one data file
+# Process RPKM files given by barcodes.dat and combine column-wise into one data file
 # barcodes.dat is a filename with list of all barcodes and their data files
 # Exon information is retained, RNA expression values are concatenated column-wise, and data file is
 # written to out.fn
@@ -20,7 +20,6 @@ library("data.table")
 
 options("width"=180) # useful for debugging
 
-# See e.g., UnifiedVirus2/U_Unified/src/SampleSummaryMaker.R for details of command line args
 get_val_arg = function(args, flag, default) {
     ix = pmatch(flag, args)
     if (!is.na(ix)){ val = args[ix+1] } else { val = default }
@@ -49,7 +48,7 @@ parse_args = function() {
     return (val)
 }
 
-# parse Song Cao RPKM data file and return data frame
+# parse RPKM data file and return data frame
 # retain barcode
 get_rpkm_data = function(fn, barcode) {
     data.bar = read.table(fn, col.names=c("chrom", "start", "end", "exon.code", "rpkm"))

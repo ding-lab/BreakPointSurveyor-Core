@@ -1,6 +1,8 @@
 # DNAcopy necessary for CBS
 library(DNAcopy)  # DNAcopy is installed with source("http://bioconductor.org/biocLite.R"); biocLite(); biocLite("DNAcopy")
 
+# Common read depth utilities.
+
 normalizeCopyNumber = function(depth.list, num.reads, read.length) {
     # Based on CombinedPlot/CombinedPlot.old/orig2013/src/depth_plot.R
     # given read depth data, normalize by average read depth to obtain copy number

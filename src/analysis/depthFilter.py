@@ -30,7 +30,8 @@
 # this reduces the memory required at the expense of more calls to read depth (increasing I/O).  To strike
 # a balance between these two approaches, we use per-region analysis to get read depth for small regions, and 
 # a per-basepair approach to get read depth for large regions.  
-# We evaluate stride as region_size / npts, where region_size = pos_end - pos_start, and npts is the number
+#
+# We evaluate subsampling stride as region_size / npts, where region_size = pos_end - pos_start, and npts is the number
 # of samples requested.  We then use a stride_threshold to determine which approach to take:
 # for stride > stride_threshold, use per-region depth analysis; otherwise, use per_basepair analysis.
 

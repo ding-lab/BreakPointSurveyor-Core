@@ -1,4 +1,4 @@
-BPR and BPC file formats
+#BPR and BPC file formats
 
 In general, we represent breakpoints as a coordinate given by a pair of
 chrom/pos (Breakpoint Coordinates, or BPC).  Alternatively, we may consider a
@@ -13,22 +13,24 @@ attribute column may code for the color of a point plotted at the given
 coordinates.
 
 Each breakpoint coordinate or region is represented just once, with chromA <
-chromB, or posA < posB if chromA==chromB
-     Both are represented in a TSV file,
+chromB (or posA < posB if chromA==chromB)
+* Both are represented in a TSV file,
+```
        BPC: chromA, posA, chromB, posB, [attribute]
        BPR: chromA, posA.start, posA.end, chromB, posB.start, posB.end, [attribute]
-     Both datatypes have optional attribute column
+```
+* Both datatypes have optional attribute column
 
 BPC and BPR files have no headers.  Lines starting with # are ignored.
 
-
-GGP file format
+#GGP file format
 
 A GGP file is a ggplot object which is saved in binary format.  The utility
-$BPS_CORE/bin/ggp2pdf converts GGP to PDF for examination
+`bin/ggp2pdf` converts GGP to PDF for examination
 
 BreakpointSurvey plots are assembled from data in three main steps:
-1) data from a given source is processed ("Drawn") to create a GGP file
-2) Additional layers can be added to GGP files to incorporate data from additional sources.
-3) Multiple GGP files are assembled into one composite BreakpointSurveyor figure and saved as a PDF file.
+
+1. Data from a given source is processed ("drawn") to create a GGP file
+2. Additional layers can be added to GGP files to incorporate data from additional sources.
+3. Multiple GGP files are assembled into one composite BreakpointSurveyor figure and saved as a PDF file.
 

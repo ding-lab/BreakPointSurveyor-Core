@@ -3,7 +3,7 @@
 #
 # Usage: Rscript ExonPicker.R [-v] [-K num.genes] [-E] -a ie.start -b ie.end -c ie.chrom -e exons.bed -o out.dat 
 
-# select exons from genes upstream and downstream of integration event and write BED file describing these.
+# Select exons from genes upstream and downstream of integration event and write BED file describing these.
 # We may select K such genes or all of them.
 # 
 # Mandatory parameters:

@@ -5,7 +5,7 @@
 # Usage: Rscript BreakpointDrawer.R [-v] [-P] [-l] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] [-M]
 #                [-a alpha][-c color][-f fill][-s shape][-t linetype][-z size] BP.fn breakpoint.ggp
 #
-#   Create or append various plots to breakpoint coordinate GGP file.  Chrom A coordinates are plotted
+#   Create or append various features to breakpoint coordinate GGP file.  Chrom A coordinates are plotted
 #   on X axis, B on Y.
 #
 #   Three types of plots supported:
