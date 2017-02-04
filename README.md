@@ -8,3 +8,5 @@ There are three layers of BreakPoint Surveyor project:
 BreakPoint Surveyor is currently released with reference implementations of the Workflow and Data layers for the TCGA_Virus project:
 * [BreakPointSurveyor-Workflow.TCGA_Virus](https://github.com/ding-lab/BreakPointSurveyor-Workflow.TCGA_Virus)
 * [BreakPointSurveyor-Data.TCGA_Virus](https://github.com/ding-lab/BreakPointSurveyor-Data.TCGA_Virus)
+
+More documentation coming soon.  See [BPS.TCGA_Virus.Lite](https://github.com/ding-lab/BPS.TCGA_Virus.Lite) for most recent documentation.
