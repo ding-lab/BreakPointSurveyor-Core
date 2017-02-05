@@ -26,7 +26,7 @@ BPC and BPR files have no headers.  Lines starting with # are ignored.
 #GGP file format
 
 A GGP file is a ggplot object which is saved in binary format.  The utility
-`bin/ggp2pdf` converts GGP to PDF for examination
+`src/plot/ggp2pdf` converts GGP to PDF for examination
 
 BreakpointSurvey plots are assembled from data in three main steps:
 
