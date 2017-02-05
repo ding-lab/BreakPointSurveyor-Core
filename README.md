@@ -50,7 +50,9 @@ There are three layers of BreakPoint Surveyor project:
 * BPS Data: BPS-generated secondary data, graphical objects, and plots
 
 BreakPoint Surveyor is currently released with a reference implementation of the TCGA_Virus workflow, 
-[BPS.TCGA_Virus.Lite](https://github.com/ding-lab/BPS.TCGA_Virus.Lite)
+[BPS.TCGA_Virus.Lite](https://github.com/ding-lab/BPS.TCGA_Virus.Lite).  This project contains
+the BPS Core, while BPS.TCGA_Virus.Lite contains the Workflow and Data layers for a single TCGA
+sample.
 
 
 ### Visualization
