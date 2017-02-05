@@ -46,7 +46,6 @@ There are three layers of BreakPoint Surveyor project:
 BreakPoint Surveyor is currently released with a reference implementation of the TCGA_Virus workflow, 
 [BPS.TCGA_Virus.Lite](https://github.com/ding-lab/BPS.TCGA_Virus.Lite)
 
-
 ### Visualization
 Multi-panel figures are generated in three steps: 
 
@@ -174,3 +173,4 @@ Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 This software is licensed under the GNU General Public License v3.0
 
 ## Acknowledgements
+
