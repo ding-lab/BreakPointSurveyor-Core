@@ -1,8 +1,6 @@
 # BreakPointSurveyor-Core
 Description
 
-blah
-
 ## Getting Started
 ### Prerequisites
 **TODO:** finish description of installation

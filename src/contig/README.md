@@ -38,4 +38,5 @@ base-pair resolution information about breakpoints detected between chimeric seg
 
 Tigra-sv sometimes creates pathologically long contig names 
 which makes samtools (and pysam) choke.  [qname_convert.py](src/contig/qname_convert.py)
+pdf(file=args$out.fn, width=args$width, height=args$height, useDingbats=FALSE)
 shortens QNAMEs in all SAM files to a hex string using an MD5 hash.
