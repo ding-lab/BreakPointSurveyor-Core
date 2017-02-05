@@ -1,14 +1,10 @@
 # BreakPointSurveyor-Core
-Description
+Core utilities implementing BreakPoint Surveyor workflow
 
 ## Getting Started
 ### Prerequisites
-**TODO:** finish description of installation
 
-The following R packages need to be installed with the command,
-```
-install.packages("xxx")
-```
+####R Packages
 
 * ggplot2
   * Note: ggplot2_2.2.0 or greater is required
@@ -16,16 +12,26 @@ install.packages("xxx")
 * gridExtra
 * gridBase
 
+Install the above in R console with,
 
-DNAcopy is installed with,
+```
+install.packages("xxx")
+```
+
+DNAcopy is installed with the following command in R console,
 
 ```
 source("https://bioconductor.org/biocLite.R")
 biocLite("DNAcopy")
 ```
 
+####Python
+
 Python libraries to install (incomplete list)
 * pysam
+
+####Other
+This is not a complete list.
 
 ### Installing
 
@@ -174,3 +180,9 @@ Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 This software is licensed under the GNU General Public License v3.0
 
 ## Acknowledgements
+
+**TODO**
+
+This work was supported by the National Cancer Institute [R01CA178383 and
+R01CA180006 to Li Ding, R01CA172652 to Ken Chen]; and National Human Genome Research
+Institute [U01HG006517 to Li Ding]. 
