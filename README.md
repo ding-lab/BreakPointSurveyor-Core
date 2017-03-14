@@ -4,13 +4,28 @@ Core utilities implementing BreakPoint Surveyor workflow
 ## Getting Started
 ### Prerequisites
 
+####System Packages
+
+* [bedtools](http://bedtools.readthedocs.io/en/latest/) v2.20.0 or newer
+* [samtools](http://www.htslib.org/download/)
+* For contig realignment
+    * [Tigra-SV](https://bitbucket.org/xianfan/tigra) v0.4.2beta or newer
+        * This may not work with samtools 1.3.1
+    * [bwa](http://bio-bwa.sourceforge.net/)
+
+
+
+
+
+
 ####R Packages
 
 * ggplot2
-  * Note: ggplot2_2.2.0 or greater is required
+  * ggplot2_2.2.0 or newer
 * bitops
 * gridExtra
 * gridBase
+* reshape2
 
 Install the above in R console with,
 

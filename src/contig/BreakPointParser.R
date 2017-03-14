@@ -95,7 +95,6 @@ read.pSBP = function(pSBP.fn) {
 
 
 # Define global sequence position (gpos)
-# see notebook p. 125
 define.left.right.pos = function(pSBP) {
     pSBP$left_gpos = 0
     pSBP$right_gpos = 0
@@ -199,7 +198,6 @@ mark.segments = function(contig.pSBP) {
 # where contig has same direction as principal segment (is_forward), and the opposite when opposite direction.  See notebook 5/11/15
 parse.pSBP = function(pSBP) {
     # ddply splits on unique combinations of listed columns and applies function to each group
-    # see /gscmnt/gc7210/dinglab/medseq/maw/Virus/Virus_2013.9a/analysis/UnifiedVirus2/PostBreakpointList/H_ExonExpression/src/ExonExpressionAnalyzer.R
     pSBP = ddply(pSBP, "query_name", function(df) return( mark.segments(df) ) )
     if (nrow(pSBP) == 0) {
         cat(paste("No breakpoints.  Quitting.\n"))
