@@ -130,22 +130,22 @@ plot.Pval = function(Pval.data, int.start, int.end, range.start, range.end, titl
     p = ggplot(data=Pval.data) 
 
     # Switching data here so are not overplotting the rectangle repeatedly
-    p = p + geom_rect(data=data.frame(foo=0), alpha=0.5, xmin=int.start, xmax=int.end, ymin=-1, ymax=5, fill="#4DAF4A", color="#4DAF4A", size=0.25)  
+    p = p + geom_rect(data=data.frame(foo=0), alpha=0.5, xmin=int.start, xmax=int.end, ymin=-1, ymax=5, fill="#4DAF4A", color=NA, size=0.25)  
 
     myarrow = arrow(length=unit(0.1,"cm"), type="closed")
-    p = p + geom_segment(mapping=aes(x=arrow.start, xend=arrow.end, y=arrow.pos, yend=arrow.pos), arrow=myarrow, color='gray50', size=0.25, alpha=0.25, show.legend=FALSE)
+    p = p + geom_segment(mapping=aes(x=arrow.start, xend=arrow.end, y=arrow.pos, yend=arrow.pos), arrow=myarrow, color='black', size=0.25, alpha=0.5, show.legend=FALSE)
 
-    p = p + geom_point(aes(x=gene.mid, y=0, color=regulated, size=logP.crop), alpha = 0.5)  # V2
+    p = p + geom_point(aes(x=gene.mid, y=0, color=regulated, size=logP.crop), alpha = 0.5, shape=16)  # V2
 
     if (!is.na(logP.guide))
-        p = p + geom_point(aes(x=gene.mid, y=0, size=logP.guide), color="gray60", shape=1, alpha=0.25)
+        p = p + geom_point(aes(x=gene.mid, y=0, size=logP.guide), color="black", shape=1, alpha=0.25)
 
     p = p + gene.color.scale
     breaks.scale = -log10(c(0.05, 5e-5, 5e-8))
     breaks.labels = c("P=0.05", "P=5e-5", "P=5e-8")
     p = p + scale_size_area(limit=c(0,logP.max), breaks=breaks.scale, labels=breaks.labels, max_size=20)
 
-    p = p + geom_text(aes(x=gene.mid, y=annotation.pos, label=gene, hjust=hjust), angle=90, size=2.5, alpha = 0.75, color="gray50")
+    p = p + geom_text(aes(x=gene.mid, y=annotation.pos, label=gene, hjust=hjust), angle=90, size=2.5, alpha = 0.75, color="black")
 
 
     p = p + theme_bw() + theme(panel.background = element_blank(), panel.border = element_blank())
