@@ -3,7 +3,7 @@
 # The Genome Institute
 #
 # Usage: Rscript BreakpointSurveyAssembler.R [-v] [-a annotation.A.ggp] [-A annotation.B.ggp] [-H histogram.ggp] [-N]
-#               [-t title] [-h height] [-w width] [-c chrom.A] [-C chrom.B] [-L] [-b] [-d marks.A] [-D marks.B] 
+#               [-t title] [-h height] [-w width] [-c chrom.A] [-C chrom.B] [-L] [-b font.size] [-d marks.A] [-D marks.B] 
 #               breakpoint.ggp depth.A.ggp depth.B.ggp out.pdf
 #
 # Read in various BreakpointSurveyor GGP objects, assemble them into composite figure, and write to PDF.
@@ -13,7 +13,7 @@
 # -v: verbose
 # -N: Do not align the panels, keeping all ranges and layout as generated (for debugging)
 # -L: do not print axis labels
-# -b: make big axis text
+# -b: define axis font size.  Other fonts scaled accordingly.  Default 10pt
 # -d, -D: make alignment marks on chrom A, B resp.  Alignment marks are test lines drawn on various panels to validate that
 #         they are aligned correctly.  argument marks.A, marks.B are comma-separated lists genomic position of marks,
 #         (e.g., "1000,2000,3000")
@@ -55,7 +55,7 @@ parse_args = function() {
     height = as.numeric(get_val_arg(args, "-h", 8))
     width = as.numeric(get_val_arg(args, "-w", 8))
     no.label = get_bool_arg(args, "-L")
-    big.font = get_bool_arg(args, "-b")
+    font.size = as.numeric(get_val_arg(args, "-b", 10))
     chrom.A = get_val_arg(args, "-c", "A")
     chrom.B = get_val_arg(args, "-C", "B")
     no.align = get_bool_arg(args, "-N")
@@ -64,10 +64,8 @@ parse_args = function() {
     marks.B = get_val_arg(args, "-D", NULL)
     if (!is.null(marks.A)) 
         marks.A = unlist(lapply( unlist(strsplit(marks.A, split=",")), as.numeric))
-        #marks.A = unlist(lapply( unlist(strsplit(marks.A, split=",")), as.numeric))
     if (!is.null(marks.B)) 
         marks.B = unlist(lapply( unlist(strsplit(marks.B, split=",")), as.numeric))
-        #marks.B = unlist(strsplit(marks.B, split=","))
 
     # mandatory positional arguments.  These are popped off the back of the array, last one listed first.
     out.fn = args[length(args)];             args = args[-length(args)]
@@ -78,28 +76,29 @@ parse_args = function() {
     val = list('verbose'=verbose, 'breakpoints.fn'= breakpoints.fn, 'histogram.fn'= histogram.fn, 'depth.A.fn'= depth.A.fn,
                'depth.B.fn'= depth.B.fn, 'out.fn'= out.fn, 'annotation.A.fn'=annotation.A.fn, 'no.align'=no.align,
                'annotation.B.fn'=annotation.B.fn, 'title'=title, 'height'=height, 'width'=width, 'marks.A'=marks.A, 'marks.B'=marks.B,
-               'no.label'=no.label, 'big.font'=big.font, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B)
+               'no.label'=no.label, 'font.size'=font.size, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B)
     if (val$verbose) { print(val) }
 
     return (val)
 }
 
-# Precise alignment of panels is based on work here: 
-    # /Users/mwyczalk/Data/Virus/Virus_2013.9a/RSEM-Exon/RPKM-Scatter/src/RPKM_scatter_plotter.R
-# Read more about approach here: http://stackoverflow.com/questions/17370853/align-ggplot2-plots-vertically
-
-# from http://zevross.com/blog/2014/11/20/under-the-hood-of-ggplot2-graphics-in-r/
+# Precise alignment of panels is based on http://stackoverflow.com/questions/17370853/align-ggplot2-plots-vertically
+# and from http://zevross.com/blog/2014/11/20/under-the-hood-of-ggplot2-graphics-in-r/
     #The ggplot_build function outputs a list of data frames (one for each layer)
     #and a panel object with information about axis limits among other things. The
     #ggplot_gtable function, which takes the ggplot_build object as input, builds
     #all grid graphical objects (known as “grobs”) necessary for displaying the
     #plot. You can manipulate the output from ggplot_build.
-# The general idea is to set the ranges of .gb objects first, then the widths/heights of .gt objects
-# details of .gb and .gt objects can be obtained with print(str(foo))
-# .ggp and .gt objects can be visualized with grid.draw(foo)
 
-# Note, starting ggplot2 2.2.0, output of ggplot_build changed: now, consider target.gb$layout 
-#   rather than old target.gb$panel
+# General flow of panel:
+#   data -> ggplot() -> ggp -> ggplot_build() -> gb -> ggplot_gtable() -> gt
+
+# The idea is to set the ranges of .gb objects first, then the widths/heights of .gt objects
+#   * details of .gb and .gt objects can be obtained with print(str(foo))
+#   * .ggp and .gt objects can be visualized with grid.draw(foo)
+
+# Note, starting ggplot2 2.2.0, output of ggplot_build changed: now, need to get/set ranges of gb$layout 
+#   rather than previously  gb$panel
 # see https://github.com/tidyverse/ggplot2/commit/06037a9fe08f572e5fbf58e32c7c5e24bb8d24da?diff=split#diff-b6a51c1de2e5c72523422829ed3adaa6
 
 # set range and ticks in X direction.  Return target.gb
@@ -174,11 +173,11 @@ convert.gt = function(x) {
 # target and template can be .ggp, .gb, or .gt objects
 # dim is one of X, Y, XY to make target equal the width, height, or both of template
 # return target.gt
-align_layout = function(target, template, dim, no.align) {
+align_layout = function(target, template, dim, no.align=FALSE) {
     # first, convert target and template to .gt objects, whatever they may currently be
     target.gt = convert.gt(target)
     template.gt = convert.gt(template)
-    
+
     if (!no.align) {
         # (The ggplot_gtable function, which takes the ggplot_build object as input,
         # builds all grid graphical objects (known as “grobs”) necessary for displaying
@@ -229,10 +228,12 @@ assemble_plot = function(breakpoint.ggp, depth.A.ggp, depth.B.ggp, histogram.ggp
     depth.A.gt = align.panels(depth.A.ggp, breakpoint.ggp, "X", no.align)
     depth.B.gt = align.panels(depth.B.ggp, breakpoint.ggp, "Y", no.align)
 
+    empty.grob = rectGrob(gp=gpar(col=NA))       
+
     # make composite depth + annotation panels as necessary
     if (!is.null(annotation.A.ggp)) {
         annotation.A.gt = align.panels(annotation.A.ggp, breakpoint.ggp, "X", no.align)
-        panel.A.gt = arrangeGrob(annotation.A.gt, depth.A.gt, heights=c(0.5,0.5), ncol=1, nrow=2)
+        panel.A.gt = arrangeGrob(annotation.A.gt, depth.A.gt, heights=c(0.25,0.75), ncol=1, nrow=2)
     } else {
         panel.A.gt = depth.A.gt
     }
@@ -240,38 +241,31 @@ assemble_plot = function(breakpoint.ggp, depth.A.ggp, depth.B.ggp, histogram.ggp
     if (!is.null(annotation.B.ggp)) {
         annotation.B.ggp = annotation.B.ggp + coord_flip()
         annotation.B.gt = align.panels(annotation.B.ggp, breakpoint.ggp, "Y", no.align)
-        panel.B.gt = arrangeGrob(depth.B.gt, annotation.B.gt, widths=c(0.5,0.5), ncol=2, nrow=1)
+        panel.B.gt = arrangeGrob(depth.B.gt, annotation.B.gt, widths=c(0.75,0.25), ncol=2, nrow=1)
     } else {
         panel.B.gt = depth.B.gt
     }
 
     if (is.null(histogram.ggp)) {
         histogram.ggp = grid.rect(gp=gpar(col="white"))
-        #histogram.ggp = rectGrob(gp = gpar(col = "white"))  # this may not be necessary
+        histogam.gt = convert.gt()
     } 
-    # not sure this is necessary
-#    else {
-    # make sure histogram dimensions match
-##        histogram.gt = ggplot_gtable(ggplot_build(histogram.ggp))
-##        histogram.gt$heights = depth.A.gt$heights
-##        histogram.gt$widths = depth.B.gt$widths
-#        histogram.gt = align_layout(histogram.ggp, depth.A.gt, "Y")
-#        histogram.gt = align_layout(histogram.gt, depth.B.gt, "X")
-#    }
-
-    main.grob = arrangeGrob(panel.B.gt, breakpoint.ggp, histogram.ggp, panel.A.gt, widths=c(0.3,0.7), heights=c(0.7,0.3), ncol=2, nrow=2)
-
-    if (!is.null(title.ggp)) {
-        annotated.grob = grid.arrange(title.ggp, main.grob, heights = c(0.025, 0.975), ncol=1, nrow=2, newpage=FALSE)
-    } else {
-        grid.draw(main.grob)
+    else {
+        histogram.gt = align_layout(histogram.ggp, depth.A.gt, "Y")
+        histogram.gt = align_layout(histogram.gt, depth.B.gt, "X")
+        histogram.gt = arrangeGrob(empty.grob, empty.grob, histogram.gt, empty.grob, widths=c(0.9,0.1), heights=c(0.1, 0.9), ncol=2, nrow=2)
     }
 
-#    if (!no.label) { 
-#        # hard positioning of labels.  Ick.
-#        grid.text("Chromosome Copy Number", x = unit(0.160, "npc"), y = unit(0.285, "npc"), gp=gpar(fontsize=10))
-#        grid.text("Virus Copy Number", x = unit(0.295, "npc"), y = unit(0.150, "npc"), gp=gpar(fontsize=10), rot=-90)
-#    }
+    # this sets up margins around entire plot
+    vp = viewport(height=unit(0.95, "npc"), width=unit(0.95, "npc"))
+
+    main.grob = arrangeGrob(panel.B.gt, breakpoint.ggp, histogram.gt, panel.A.gt, widths=c(0.3,0.7), heights=c(0.7,0.3), ncol=2, nrow=2)
+    if (!is.null(title.ggp)) {
+        main.grob = grid.arrange(title.ggp, main.grob, heights = c(0.025, 0.975), ncol=1, nrow=2, newpage=FALSE, vp=vp)
+    } else {
+        main.grob = grid.arrange(empty.grob, main.grob, heights = c(0, 1), ncol=1, nrow=2, newpage=FALSE, vp=vp)
+    }
+    grid.draw(main.grob)
 }
 
 
@@ -302,13 +296,15 @@ if (!is.null(title_text))  {
     title.ggp = NULL
 }
 
+# apply themes and customizations
+
 gray.ticks = theme(axis.ticks = element_line(color="gray50"))
 no.margin = theme(plot.margin=unit(c(0,0,0,0),"in"))
 no.legend = theme(legend.position="none")
-no.axis.labels = theme(axis.ticks = element_blank(), axis.text = element_blank())
 breakpoint.margins = theme(plot.margin=unit(c(0.125,0.125,0,0), "in")) # top, right, bottom, and left margins
 
-breakpoint.ggp = breakpoint.ggp + breakpoint.margins + no.legend + no.axis.labels
+breakpoint.ggp = breakpoint.ggp + breakpoint.margins + no.legend + theme(axis.ticks = element_blank(), axis.text = element_blank())
+
 depth.A.ggp = depth.A.ggp + xlab(sprintf("%s Pos", args$chrom.A)) + no.margin + no.legend
 depth.B.ggp = depth.B.ggp + theme( axis.text.y=element_text(angle=-90, hjust=0.5), 
                                    axis.title.y = element_text(angle=-90)) + 
@@ -331,30 +327,27 @@ if (!is.null(args$marks.B)) {
     annotation.B.ggp = add.alignment.marks(annotation.B.ggp, args$marks.B)
 }
 
-#    chrom.A.marks = c(33080000, 33140000)
-#    chrom.B.marks = c(120825000, 120900000)
-#    depth.A.ggp = add.alignment.marks(depth.A.ggp, chrom.A.marks)
-#    depth.B.ggp = add.alignment.marks(depth.B.ggp, chrom.B.marks)
-#    breakpoint.ggp = add.alignment.marks(breakpoint.ggp, chrom.A.marks, chrom.B.marks)
-#    annotation.A.ggp = add.alignment.marks(annotation.A.ggp, chrom.A.marks)
-#    annotation.B.ggp = add.alignment.marks(annotation.B.ggp, chrom.B.marks)
 
 
-# we're expanding meaning of big.font to do many customizaitons for -special figures for manuscript
-# This should be done in an external script
-if (args$big.font) {
-    target.size = 12
-    no.grid = theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank())
-    resize.text = theme(axis.text = element_text(size=target.size, color="gray50"))
-    if (!is.null(histogram.ggp)) histogram.ggp = histogram.ggp + no.grid + resize.text + gray.ticks
-    depth.A.ggp = depth.A.ggp + no.grid + resize.text + gray.ticks
-    depth.B.ggp = depth.B.ggp + no.grid + resize.text + gray.ticks
-    breakpoint.ggp = breakpoint.ggp + no.grid + theme(axis.text = element_text(size=6, color="gray50")) + gray.ticks
+no.grid = theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank())
+axis.text.theme = theme(axis.text = element_text(size=args$font.size, color="gray10"))
+axis.title.theme = theme(axis.title = element_text(size=args$font.size, color="gray10"))
 
-    if (!is.null(histogram.ggp)) histogram.ggp = histogram.ggp + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+if (!is.null(histogram.ggp)) {
+    histogram.ggp = histogram.ggp + no.grid + axis.text.theme + gray.ticks + axis.title.theme 
+    histogram.ggp = histogram.ggp + theme(
+            legend.title = element_blank(),
+            legend.text = element_text(size=args$font.size-2, color="gray10")) 
 }
+depth.A.ggp = depth.A.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks
+depth.B.ggp = depth.B.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks
+breakpoint.ggp = breakpoint.ggp + no.grid #+ gray.ticks
+
+if (!is.null(histogram.ggp)) histogram.ggp = histogram.ggp + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 
 cat(sprintf("Saving to %s\n", args$out.fn))
 pdf(file=args$out.fn, width=args$width, height=args$height, useDingbats=FALSE)
+
+# this is where the final assembly takes place
 assemble_plot(breakpoint.ggp, depth.A.ggp, depth.B.ggp, histogram.ggp, annotation.A.ggp, annotation.B.ggp, title.ggp, args$no.label, args$no.align)
 
