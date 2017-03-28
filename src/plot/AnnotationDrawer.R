@@ -8,7 +8,8 @@
 #
 # Input arguments:
 #
-# * genes.bed is a genes BED file.  Genes outside of the range given by (chrom, range.start, range.end) will be discarded.
+# * genes.bed is a genes BED file with gene names as 4th column.  
+#   Genes outside of the range given by (chrom, range.start, range.end) will be discarded.
 # * out.ggp is filename of GGP output  If -P defined, .pdf appended to filename if necessary
 
 # Optional arguments:
@@ -19,12 +20,18 @@
 #         Filtering data may be prevented with -F.  
 # -D annotation dodge parameter.  Annotations will fall into this many lines.
 # -e exons.bed.  BED file which indicates regions of exons.  Similar to genes.bed.
+#       Names of genes in exon must match names in genes.bed (this gives them same color and position)
+#       Alternatively, exon names (column 4 of exons.bed) may have format, "gene_name:exon_label",
+#       where gene_name must match that from genes.bed, and exon_label is arbitrary text which 
+#       is drawn next to exon figure
 # -B: Annotate for chrom B.  This rotates text and reverses X scale.
 # -P: Output as PDF file instead of GGP.  This is primarily for convenience and debugging.
 
 options("width"=180) # useful for debugging
 library("bitops")
 library("plyr")
+library("stringr")
+
 suppressPackageStartupMessages(library("ggplot2"))
 #require(gtable)
 
@@ -110,14 +117,23 @@ get.chrom.annotation.df = function(genes, range.pos, dodge, height=1) {
 get.gene.exon.annotation.df = function(genes, exons, range.pos, dodge) { 
     annotation.df = get.chrom.annotation.df(genes, range.pos, dodge, 0.1)  # last number is "thickness" of intron section 
     if (nrow(exons) != 0 & nrow(annotation.df) != 0) {
+        # Exon names can have format, gene_name:exon_label. If the separator is found, gene_name is assumed to be
+        # "label_group".
+        # label_group used to give exon the color and y pos of the gene.
+
+        exons$label_group = str_split_fixed(exons$name, ":", 2)[,1]
+        exons$label = str_split_fixed(exons$name, ":", 2)[,2]
+        exons$name = NULL
+    
         # define position of exons so they line up with gene y positions
-        exon_annotation = data.frame(xmin=exons$start, xmax=exons$end, label="", label_group=exons$name)
+        exons$mid = exons$start + (exons$end - exons$start)/2
+        exon_annotation = data.frame(xmin=exons$start, xmax=exons$end, labelx=exons$mid, label=exons$label, label_group=exons$label_group)
 
         # y position of exon is based on y position of gene
         # In certain cases we find there are exons with no corresponding genes.  Rather than crashing, we warn the user of this
         # and go on.  Deal this with all.x in merge, and detect it by finding exon_annotation with unknown ymin, which comes from 
         # gene annotation.
-        exon_annotation = merge(exon_annotation, annotation.df[,c("label_group", "ymin", "labelx", "labely")], by="label_group", sort=FALSE, all.x=TRUE) 
+        exon_annotation = merge(exon_annotation, annotation.df[,c("label_group", "ymin", "labely")], by="label_group", sort=FALSE, all.x=TRUE) 
         if (any(is.na(exon_annotation$ymin))) {
             is.na.ymin = which(is.na(exon_annotation$ymin))
             unknown.genes = unique(exon_annotation[is.na.ymin, "label_group"])

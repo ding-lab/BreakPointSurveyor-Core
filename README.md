@@ -26,6 +26,7 @@ Core utilities implementing BreakPoint Surveyor workflow
 * gridExtra
 * gridBase
 * reshape2
+* stringr
 
 Install the above in R console with,
 
