@@ -2,8 +2,6 @@
 # Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
 
 # Parse VAF as output by pindel
-# from /gscuser/mwyczalk/projects/TCGA_SARC/ICGC/A_AnalyzeVCF/src/vafFilter.py.  
-# Based on /gscuser/mwyczalk/projects/Virus/Virus_2013.9a/analysis/UnifiedVirus2/S_TigraExt/src/vafFilter.py, which is for tigra
 #
 # TODO: make sure pindel, tigra parsers have common codebase.
 #

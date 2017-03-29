@@ -23,7 +23,6 @@ import itertools, string, sys
 
 class FAI:
 # reads, stores, and processes chromosome lengths based on FAI file.
-# an example is /gscmnt/sata420/info/model_data/2857786885/build102671028/all_sequences.fa.fai
 # sample line: 1   249250621   52  60  61
 # where first col is chrom name, second is chrom length.  Remaining ignored.
 

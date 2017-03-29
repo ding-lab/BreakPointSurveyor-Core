@@ -20,8 +20,6 @@
 # -A nA: number of times to draw observations at random to create null distribution [10,000]
 # -F: calculate FDR
 
-# Based on /gscuser/jflynn/Projects/Virus2014/RSEM_Analysis_Code/RSEM_gene_analysis.R
-
 library("reshape2")
 library("plyr")
 

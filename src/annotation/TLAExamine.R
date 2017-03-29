@@ -11,10 +11,6 @@
 # -o out.fn: TSV format output.  If not specified writes to stdout
 # -m mode: type of file, either "vcf" or "gtf".  If not specified then based on dat.fn extension
 
-
-# Based on /gscuser/mwyczalk/projects/Virus/Virus_2013.9a/analysis/UnifiedVirus2/PostBreakpointList/D_Ensembl/src/GTFExamine.R
-# Generalized to work with any such file. 
-
 suppressMessages(library(splitstackshape))
 suppressMessages(library("reshape2"))
 library(tools)
