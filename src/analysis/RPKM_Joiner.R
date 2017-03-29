@@ -8,8 +8,9 @@
 # barcodes.dat is a filename with list of all barcodes and their data files
 # Exon information is retained, RNA expression values are concatenated column-wise, and data file is
 # written to out.fn
-# chromosome names have 'chr' removed, i.e., 'chr2' becomes '2'.  This is required for consistency
-# with BED files in this workflow.
+# First four columns of output are, "chrom", "start", "end", "gene"
+
+# chromosome names have 'chr' removed, i.e., 'chr2' becomes '2'.  TODO: Make this optional
 # older versions (with 'chr') can be fixed with, `sed 's/^chr//' old.dat > new.dat`
 #   (though this does clobber the header)
 

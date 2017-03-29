@@ -83,8 +83,11 @@ read.exons = function(exons.fn) {
 # Read RPKM data, retain only entries of interest (as defined by exons), melt to long format, and indicate case/control
 # Exons with an excessive number of zero-RPKM samples (as defined by zero.cutoff) are discarded.
 # Format of returned RPKM data frame:
-#  chrom    start      end  gene   stream strand                      barcode       RPKM       sample.id  case  -> seems old, should have exon.id
-#  1    14 68168602 68168652 RDH12 upstream      + TCGA-BA-4074-01A-01R-1436-07 0.00000000 TCGA-BA-4074-01 FALSE
+
+# TODO: 
+#   * detail format of input RPKM data
+#   * Detail format out output data    
+
 get.RPKM = function(RPKM.fn, exons.fn, zero.cutoff) {
     exons = read.exons(exons.fn)
     # Parse exon expression data
