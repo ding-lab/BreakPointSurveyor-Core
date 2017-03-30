@@ -43,8 +43,15 @@ biocLite("DNAcopy")
 
 ####Python
 
+Tested on Python 2.7.5
+
 Python libraries to install (incomplete list)
 * pysam
+```
+pip install pysam
+pip install pysam --user
+```
+
 
 ####Other
 This is not a complete list.

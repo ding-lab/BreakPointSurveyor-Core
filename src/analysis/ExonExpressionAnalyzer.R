@@ -1,6 +1,7 @@
 # Matthew Wyczalkowski and Jennifer Flynn
 # mwyczalk@genome.wustl.edu
-# version 3.0 - per gene analysis with permutation test across all genes of interest.  See notebook 6/23/15 for description of approach
+# version 3.0 - per gene analysis with permutation test across all genes of interest.  
+#               Algorithm described in L_Expression/AlgorithmDetails.md of BPS.TCGA_Virus.Lite
 #
 # Usage: Rscript ExonExpressionAnalyzer.R [-v] [-S] [-s gene.out.fn] [-z zero.cutoff] [-n name] [-A nA] [-F] case.sample.id RPKM.dat exons.dat 
 #
@@ -81,8 +82,13 @@ read.exons = function(exons.fn) {
 # Read RPKM data, retain only entries of interest (as defined by exons), melt to long format, and indicate case/control
 # Exons with an excessive number of zero-RPKM samples (as defined by zero.cutoff) are discarded.
 # Format of returned RPKM data frame:
-#  chrom    start      end  gene   stream strand                      barcode       RPKM       sample.id  case  -> seems old, should have exon.id
-#  1    14 68168602 68168652 RDH12 upstream      + TCGA-BA-4074-01A-01R-1436-07 0.00000000 TCGA-BA-4074-01 FALSE
+
+# Input RPKM data has the following four initial columns: chrom, start, end, name, with RPKM data in the following columns.
+#   Header lines are mandatory.
+
+# TODO
+#   * Detail format out output data    
+
 get.RPKM = function(RPKM.fn, exons.fn, zero.cutoff) {
     exons = read.exons(exons.fn)
     # Parse exon expression data
