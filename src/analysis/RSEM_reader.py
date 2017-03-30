@@ -1,10 +1,17 @@
 #!/usr/bin/python
 # Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
 # extract lines from RSEM exon data which fall within regions of interest as defined by a BED file
-# Optionally convert first column of RSEM format into columns [chrom, start, end, gene], with gene name from BED
+# * optionally convert first column of RSEM format into columns (chrom, start, end, gene, [strand]), with gene name from BED
 
-# v2.1: optionally convert first column of RSEM format into columns [chrom, start, end, gene], with gene name from BED
-# v2.0: retains exon data based on domains defined in BED file.
+# Usage: RSEM_reader.py [options] regions.bed
+# -i infn:  Input data filename
+# -o outfn:  Output data filename
+# -d  Turn on debugging
+# -c  Convert first column of RSEM data into columns [chr, start, end, gene]
+# -p  Add strand information to leading columns.  Implies -c
+# -D  Exclude data columns, write only leading columns.
+# -H  Do not write header
+# -s N:  Remove N leading characters in chrom name
 
 import sys
 
@@ -50,34 +57,48 @@ def filter_exon(f, o, bf, options):
     for i, line in enumerate(f, start=1):
     # Sample RSEM line:
     # chr14:68290259-68290344:+
-        t, data = line.rstrip().split("\t", 1)
+        col1, data = line.rstrip().split("\t", 1)
+
+        if options.no_data:
+            data = ""
 
         # Skip header row starting with "exon"
-        if (t == "exon"): continue
+        if (col1 == "exon"): continue
 
-        # retain and expand if necessary header rows starting with "Hybridization REF"
-        if (t == "Hybridization REF"): 
-            if options.convert_columns:
-                t = '\t'.join( ('chr', 'start', 'end', 'gene') )
-            o.write('\t'.join( (t, data)) + "\n")
+        # Header rows start with "Hybridization REF"
+        # Print as necessary and continue to next line
+        if (col1 == "Hybridization REF"): 
+            if options.strand:
+                col1 = '\t'.join( ('chrom', 'start', 'end', 'gene', 'strand') )
+            elif options.convert_columns:
+                col1 = '\t'.join( ('chrom', 'start', 'end', 'gene') )
+            if not options.no_header:
+                o.write('\t'.join( (col1, data)) + "\n")
             continue
 
-        # Process the first column entry
-        tok1 = t.split(":")
+        # Process the first column 
+        tok1 = col1.split(":")
         if len(tok1) != 3:
             raise Exception("Weird column 1 format: %s" % t)
-        (c, r, p) = tok1
-        RSEMstart, RSEMend = map(int, r.split("-"))
-        pos = RSEMstart + int((RSEMend - RSEMstart) / 2)
-        RSEMchr = c[3:] if options.strip_chr else c
-        if options.debug: print "Testing chr %s, %d - %d" % (RSEMchr, RSEMstart, RSEMend)
 
-        seg = bf.get_segment(RSEMchr, pos)
-        if seg is not None:
-            if options.convert_columns:
-                t = '\t'.join( map(str, (RSEMchr, RSEMstart, RSEMend, seg[3])) )
+        (chrom, pos, strand) = tok1
 
-            o.write('\t'.join( (t, data)) + "\n")
+        pos_start, pos_end = map(int, pos.split("-"))
+        mid = pos_start + int((pos_end - pos_start) / 2)
+        if options.strip_chr:
+            chrom = chrom[int(options.strip_chr):] 
+
+        if options.debug: print "Testing chr %s, %d - %d" % (chrom, pos_start, pos_end)
+
+        matched_segment = bf.get_segment(chrom, mid)
+        if matched_segment is not None:
+            matched_chrom, matched_start, matched_end, matched_gene = matched_segment
+            if options.strand:
+                col1 = '\t'.join( map(str, (chrom, pos_start, pos_end, matched_gene, strand)) )
+            elif options.convert_columns:
+                col1 = '\t'.join( map(str, (chrom, pos_start, pos_end, matched_gene)) )
+
+            o.write('\t'.join( (col1, data)) + "\n")
 
 def main():
     from optparse import OptionParser
@@ -93,15 +114,16 @@ def main():
         
         """
 
-    #  TODO: Add -i, -o to input/output filenames
-
-    parser = OptionParser(usage_text, version="$Revision: 2.0 $")
-    parser.add_option("-d", dest="debug", default=False, action="store_true", help="Turn on debugging")
-    parser.add_option("-c", dest="convert_columns", default=False, action="store_true", help="Convert first column of RSEM data into columns [chr, start, end, gene]")
-    parser.add_option("-s", dest="strip_chr", default=False, action="store_true", help="Remove leading 'chr' in chrom name")
+    parser = OptionParser(usage_text)
     parser.add_option("-i", dest="infn", default="stdin", help="Input data filename")
     parser.add_option("-o", dest="outfn", default="stdout", help="Output data filename")
 
+    parser.add_option("-d", dest="debug", default=False, action="store_true", help="Turn on debugging")
+    parser.add_option("-c", dest="convert_columns", default=False, action="store_true", help="Convert first column of RSEM data into columns [chr, start, end, gene]")
+    parser.add_option("-p", dest="strand", default=False, action="store_true", help="Add strand information to leading columns.  Implies -c") 
+    parser.add_option("-D", dest="no_data", default=False, action="store_true", help="Exclude data columns, write only leading columns.")  
+    parser.add_option("-H", dest="no_header", default=False, action="store_true", help="Do not write header")  
+    parser.add_option("-s", dest="strip_chr", help="Remove N leading characters in chrom name")  
 
     (options, params) = parser.parse_args()
 
