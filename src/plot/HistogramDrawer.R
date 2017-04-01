@@ -111,7 +111,7 @@ render.histogram = function(histogram.df, x.label, nbin, hist.max, do.density) {
     ggp = ggp + theme_bw()
     ggp = ggp + theme(legend.position=c(0.8,0.8), legend.title=element_text(size=6), legend.text=element_text(size=6), 
             axis.text = element_text(size=6), axis.title=element_text(size=6), legend.key.size=unit(1,"mm"))
-    ggp = ggp + theme(legend.title=element_blank()) 
+    ggp = ggp + theme(legend.title=element_blank(), legend.background = element_blank())
     ggp = ggp + get.fill.scale()
     return(ggp)
 }
