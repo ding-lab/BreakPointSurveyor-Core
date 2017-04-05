@@ -4,65 +4,8 @@ Core utilities implementing BreakPoint Surveyor workflow
 ## Getting Started
 ### Prerequisites
 
-####System Packages
+See BreakPointSurveyor documentation
 
-* [bedtools](http://bedtools.readthedocs.io/en/latest/) v2.20.0 or newer
-* [samtools](http://www.htslib.org/download/)
-* For contig realignment
-    * [Tigra-SV](https://bitbucket.org/xianfan/tigra) v0.4.2beta or newer
-        * This may not work with samtools 1.3.1
-    * [bwa](http://bio-bwa.sourceforge.net/)
-
-
-
-
-
-
-####R Packages
-
-* ggplot2
-  * ggplot2_2.2.0 or newer
-* bitops
-* gridExtra
-* gridBase
-* reshape2
-* stringr
-
-Install the above in R console with,
-
-```
-install.packages("xxx")
-```
-
-DNAcopy is installed with the following command in R console,
-
-```
-source("https://bioconductor.org/biocLite.R")
-biocLite("DNAcopy")
-```
-
-####Python
-
-Tested on Python 2.7.5
-
-Python libraries to install (incomplete list)
-* pysam
-```
-pip install pysam
-pip install pysam --user
-```
-
-
-####Other
-This is not a complete list.
-
-### Installing
-
-```git clone https://github.com/ding-lab/BreakPointSurveyor-Core```
-
-Recommended to also install [BPS.TCGA_Virus.Lite](https://github.com/ding-lab/BPS.TCGA_Virus.Lite)
-
-```git clone https://github.com/ding-lab/BPS.TCGA_Virus.Lite```
 
 ## BPS Documentation
 ### Architecture
