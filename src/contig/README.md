@@ -1,10 +1,5 @@
 # Contig 
 
-See description of workflow in TCGA_Virus project [here](http://github.com/ding-lab/BPS.TCGA_Virus.Lite).
-
-TODO: *copy notes from notebook p. 125*
-
-## Utilities
 Creating SBP files ("SAM BreakPoint") from bwa-mem-aligned reads.  These contain
 base-pair resolution information about breakpoints detected between chimeric segment.
 
