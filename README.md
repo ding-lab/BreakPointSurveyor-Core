@@ -25,13 +25,14 @@ sample.
 Multi-panel figures are generated in three steps: 
 
 1. The data processing normalizes data into standard formats. For instance, breakpoint
-predictions from different SV callers are normalized into a [BPC](doc/FileFormat.md) file format,
+predictions from different SV callers are normalized into a [BPC][dev]) file format,
 while read depth and gene annotation are converted to Depth and BED formats, respectively.  
 2. Each dataset is rendered as an image panel saved as a binary "GGP" object.
 Additional layers, for instance predictions from different SV callers, may be added to an existing
-GGP object in subsequent processing steps.
+GGP object in subsequent processing steps ([see details][dev]).
 3. Finally, multiple GGP objects are assembled, aligned to common axes,
 and saved to a PDF format to form a composite figure.
+
 
 ## BPS Utilities
 ### src/analysis
@@ -46,13 +47,13 @@ Calculate and write to stdout p-value associated with gene expression in vicinit
 Select exons from genes upstream and downstream of integration event and write BED file describing these.
 
 * **[Pindel_RP.Reader.R](src/analysis/Pindel_RP.Reader.R)**
-Create Breakpoint Region file ([BPR](doc/FileFormat.md)) based on output of Pindel RP module.  
+Create Breakpoint Region file ([BPR][dev])) based on output of Pindel RP module.  
 
 * **[RPKM_Joiner.R](src/analysis/RPKM_Joiner.R)**
 Process multiple RPKM files and combine column-wise into one data file.  
 
 * **[TigraCTXMaker.R](src/analysis/TigraCTXMaker.R)**
-Create a breakdancer-style CTX file from either Pindel's RP or [BPR](doc/FileFormat.md) data to be used as Tigra-SV input
+Create a breakdancer-style CTX file from either Pindel's RP or [BPR][dev]) data to be used as Tigra-SV input
 
 * **[depthFilter.py](src/analysis/depthFilter.py)**
 Read BAM file and evaluate read depth in a segment. Output is subsampled to give data size,
@@ -149,8 +150,8 @@ This software is licensed under the GNU General Public License v3.0
 
 ## Acknowledgements
 
-**TODO**
-
 This work was supported by the National Cancer Institute [R01CA178383 and
 R01CA180006 to Li Ding, R01CA172652 to Ken Chen]; and National Human Genome Research
 Institute [U01HG006517 to Li Ding]. 
+
+[dev][https://github.com/ding-lab/BreakPointSurveyor/blob/master/Development.md]
