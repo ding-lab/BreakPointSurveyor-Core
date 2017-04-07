@@ -3,13 +3,12 @@
 
 ## Overview
 
-BreakPointSurveyor (BPS) is a set of core libraries
-([BreakPointSurveyor-Core](https://github.com/ding-lab/BreakPointSurveyor-Core)) and 
-workflows ([this project](https://github.com/ding-lab/BreakPointSurveyor)) which, with optional external tools,
+BreakPointSurveyor (BPS) is a set of core libraries (this project) and 
+[workflows](https://github.com/ding-lab/BreakPointSurveyor) which, with optional external tools,
 evaluate genomic sequence data to discover, analyze, and provide a visual summary of
 interchromosomal breakpoint events.
 
-The BreakPointSurveyor project provides three reference workflows, each implemented as a separate [git
+The [BreakPointSurveyor project](https://github.com/ding-lab/BreakPointSurveyor) provides three reference workflows, each implemented as a separate [git
 branch](https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell).
 These workflows (and the links to view them) are:
 
