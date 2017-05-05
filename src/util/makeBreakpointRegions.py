@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 
 # Usage: makeBreakpointRegions.py [options] BPC.dat BPR.dat ...
 # Cluster Breakpoints into Breakpoint regions.

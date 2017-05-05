@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: Rscript Pindel_RP.Reader.R [-v] [-V] [-p virus.prefix] [-S] PindelRP.dat out.BPR

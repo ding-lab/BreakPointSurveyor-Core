@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: ZoomGGP.R [-v] [-x X] [-y Y] [-r r.x] [-R r.y] [-h height] [-w width] [-F] [-s x,y] data.ggp out.pdf

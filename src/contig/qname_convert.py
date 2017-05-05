@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 
 # Usage:
 # cat long.sam | python qname_convert.py > md5.sam 

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 
 # Read VCF file and write coordinates of features in various formats

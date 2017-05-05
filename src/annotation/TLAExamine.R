@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: Rscript TLAExamine.R [-v] [-m mode] [-f dat.fn] [-o out.fn] 

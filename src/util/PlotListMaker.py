@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 
 # Create a Breakpoint Surveyor PlotList file from Breakpoint Coordinate (BPC) or Breakpoint Region (BPR) data
 # Each line in a PlotList corresponds to one plot to be generated.  

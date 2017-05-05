@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 # extract lines from RSEM exon data which fall within regions of interest as defined by a BED file
 # * optionally convert first column of RSEM format into columns (chrom, start, end, gene, [strand]), with gene name from BED
 

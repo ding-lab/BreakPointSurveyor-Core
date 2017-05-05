@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 #
 # Usage: Rscript PvalBubblePlotter.R [-v] [-t title] [-l] [-p pval] [-P logP.max] [-F] [-h height] [-w width] [-x x-label text]
 #                -a int.start -b int.end -f flank -s case.sample.id gene.pval.dat out.pdf

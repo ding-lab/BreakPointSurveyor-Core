@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: PlotListParser.R [-v] barcode chrom pos PlotList.dat

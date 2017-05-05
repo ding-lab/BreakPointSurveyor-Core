@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: ggp2pdf [-v] [-h height] [-w width] data.ggp out.pdf

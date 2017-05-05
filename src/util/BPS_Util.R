@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Common BreakpointSurveyor utilities.

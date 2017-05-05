@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: Rscript DepthDrawer.R [-v] [-P] [-M range] [-N range] [-F] [-G fn.ggp] [-p plot.type] [-l]

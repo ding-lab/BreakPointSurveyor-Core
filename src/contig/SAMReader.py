@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 
 # TODO: make the output of this be 1-base rather than 0-base, so that this output is consistent with
 # what is seen in SAM file.  This will make SBP be 1-base too, making analysis easier.

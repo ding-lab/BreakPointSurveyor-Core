@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 #
 # depthFilter.py: Evaluate read depth in subsection of chrom, subsampled to give reasonable output size, 
 #                 optimized for performance

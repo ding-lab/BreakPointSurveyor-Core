@@ -1,5 +1,7 @@
+#!/usr/bin/env Rscript
+
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: Rscript AnnotationDrawer.R [-v] [-P] [-V] [-A range] [-e exons.bed] [-D dodge] [-B] genes.bed out.ggp

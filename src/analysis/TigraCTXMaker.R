@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 #
 # Usage: Rscript TigraCTXMaker.R [-v] Pindel.dat out.ctx
 # -b: Pindel.dat is a BPR file with attribute field of format "A+ B-" indicating strand orientation

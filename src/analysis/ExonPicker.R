@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski and Jennifer Flynn
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 #
 # Usage: Rscript ExonPicker.R [-v] [-K num.genes] [-E] -a ie.start -b ie.end -c ie.chrom -e exons.bed -o out.dat 
 

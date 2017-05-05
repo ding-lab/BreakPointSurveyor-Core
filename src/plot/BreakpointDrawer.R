@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
 # Usage: Rscript BreakpointDrawer.R [-v] [-P] [-l] [-A range.A] [-B range.B] [-F] [-G fn.ggp] [-p plot.type] [-M]

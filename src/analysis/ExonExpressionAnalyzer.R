@@ -1,5 +1,5 @@
 # Matthew Wyczalkowski and Jennifer Flynn
-# mwyczalk@genome.wustl.edu
+# m.wyczalkowski@wustl.edu
 # version 3.0 - per gene analysis with permutation test across all genes of interest.  
 #               Algorithm described in L_Expression/AlgorithmDetails.md of BPS.TCGA_Virus.Lite
 #

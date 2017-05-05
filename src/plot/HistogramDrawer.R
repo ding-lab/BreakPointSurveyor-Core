@@ -1,3 +1,8 @@
+#!/usr/bin/env Rscript
+
+# Matthew Wyczalkowski
+# m.wyczalkowski@wustl.edu
+#
 # Usage: Rscript HistogramDrawer.R [-v] [-u num.reads] [-n read.length] [-N nbin] [-m hist.max] [-d] [-P]
 #       [-e names] depth.A.fn depth.B.fn out.ggp
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Matthew A. Wyczalkowski, mwyczalk@genome.wustl.edu
+# Matthew A. Wyczalkowski, m.wyczalkowski@wustl.edu
 #
 # Simple script to read GTF file line by line, test if criteria are met, and either print or
 # discard line.  Criteria for genes and exons are based on GTF documentation and guesswork.
