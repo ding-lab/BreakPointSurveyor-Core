@@ -333,14 +333,17 @@ no.grid = theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank
 axis.text.theme = theme(axis.text = element_text(size=args$font.size, color="gray10"))
 axis.title.theme = theme(axis.title = element_text(size=args$font.size, color="gray10"))
 
+small.axis.text.x.theme = theme(axis.text.x = element_text(size=args$font.size-3, color="gray10"))
+small.axis.text.y.theme = theme(axis.text.y = element_text(size=args$font.size-3, color="gray10"))
+
 if (!is.null(histogram.ggp)) {
     histogram.ggp = histogram.ggp + no.grid + axis.text.theme + gray.ticks + axis.title.theme 
     histogram.ggp = histogram.ggp + theme(
             legend.title = element_blank(),
             legend.text = element_text(size=args$font.size-2, color="gray10")) 
 }
-depth.A.ggp = depth.A.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks
-depth.B.ggp = depth.B.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks
+depth.A.ggp = depth.A.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks + small.axis.text.y.theme + scale_y_continuous(breaks = scales::pretty_breaks(n = 3))
+depth.B.ggp = depth.B.ggp + no.grid + axis.text.theme + axis.title.theme + gray.ticks + small.axis.text.x.theme + scale_y_continuous(breaks = scales::pretty_breaks(n = 3))
 breakpoint.ggp = breakpoint.ggp + no.grid #+ gray.ticks
 
 if (!is.null(histogram.ggp)) histogram.ggp = histogram.ggp + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())

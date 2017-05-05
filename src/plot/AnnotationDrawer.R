@@ -157,7 +157,7 @@ make.annotation.ggp = function(annotation, is.B) {
     text.angle = if (is.B) -90 else 0
 
     ggp = ggplot() 
-    ggp = ggp + geom_rect(data=annotation, mapping=aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=label_group, color=label_group), alpha=0.1) 
+    ggp = ggp + geom_rect(data=annotation, mapping=aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=label_group, color=label_group), alpha=1) 
 
     vjust=-0.2
     ggp = ggp + geom_text(data=annotation, aes(x=labelx, y=labely, label=label, color=label_group), size=3, vjust=vjust, angle=text.angle) 
