@@ -23,14 +23,11 @@
 #   -r          Read BPR data and treat center of each region as BPC coordinate
 #
 
-
 # For a given chromosome pair, all breakpoints within a given distance of each other
 # are collected into individual clusters.  Such clusters then define the regions of
 # interest as written to a BPR file.
-# Implementation details illustrated in BreakpointSurveyor/doc/BPS_clustering.pdf
+# Implementation details illustrated in doc/BPS_clustering.pdf
 
-# Details on data formats in $BPS_CORE/doc/BPC_BPR_FileFormat.txt
-#
 # With -r flag, read breakpoint coordinates from BPR file instead of BPC file.
 # Geometric center of each BPR region is treated as a BPC breakpoint.  The actual extents of each region are then ignored.
 
