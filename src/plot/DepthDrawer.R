@@ -242,6 +242,9 @@ render.point = function(ggp, BPC, chrom.AB, y.mid, y.jitter, alpha=NA, color=NUL
     if (!is.na(size)) args$size = size
     if (!is.null(color)) args$color = color
     if (!is.null(fill)) args$fill = fill
+    else { # if not specified, color is an aes with value given by attribute column
+        aes.args$color = "attribute"
+    }
     args$data=BPC
     args$mapping = do.call(aes_string, aes.args)  
     # now call geom_point with all the arguments
