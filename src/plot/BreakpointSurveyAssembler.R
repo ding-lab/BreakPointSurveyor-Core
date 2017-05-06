@@ -2,7 +2,7 @@
 # m.wyczalkowski@wustl.edu
 # The Genome Institute
 #
-# Usage: Rscript BreakpointSurveyAssembler.R [-v] [-a annotation.A.ggp] [-A annotation.B.ggp] [-H histogram.ggp] [-N]
+# Usage: Rscript BreakpointSurveyAssembler.R [-v] [-a annotation.A.ggp] [-A annotation.B.ggp] [-H histogram.ggp] [-N] [-M]
 #               [-t title] [-h height] [-w width] [-c chrom.A] [-C chrom.B] [-L] [-b font.size] [-d marks.A] [-D marks.B] 
 #               breakpoint.ggp depth.A.ggp depth.B.ggp out.pdf
 #
@@ -13,6 +13,7 @@
 # -v: verbose
 # -N: Do not align the panels, keeping all ranges and layout as generated (for debugging)
 # -L: do not print axis labels
+# -M: print attribute legends 
 # -b: define axis font size.  Other fonts scaled accordingly.  Default 10pt
 # -d, -D: make alignment marks on chrom A, B resp.  Alignment marks are test lines drawn on various panels to validate that
 #         they are aligned correctly.  argument marks.A, marks.B are comma-separated lists genomic position of marks,
@@ -59,6 +60,7 @@ parse_args = function() {
     chrom.A = get_val_arg(args, "-c", "A")
     chrom.B = get_val_arg(args, "-C", "B")
     no.align = get_bool_arg(args, "-N")
+    show.attribute.legends = get_bool_arg(args, "-M")
 
     marks.A = get_val_arg(args, "-d", NULL)
     marks.B = get_val_arg(args, "-D", NULL)
@@ -76,7 +78,7 @@ parse_args = function() {
     val = list('verbose'=verbose, 'breakpoints.fn'= breakpoints.fn, 'histogram.fn'= histogram.fn, 'depth.A.fn'= depth.A.fn,
                'depth.B.fn'= depth.B.fn, 'out.fn'= out.fn, 'annotation.A.fn'=annotation.A.fn, 'no.align'=no.align,
                'annotation.B.fn'=annotation.B.fn, 'title'=title, 'height'=height, 'width'=width, 'marks.A'=marks.A, 'marks.B'=marks.B,
-               'no.label'=no.label, 'font.size'=font.size, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B)
+               'no.label'=no.label, 'font.size'=font.size, 'chrom.A'=chrom.A, 'chrom.B'=chrom.B, 'show.attribute.legends'=show.attribute.legends)
     if (val$verbose) { print(val) }
 
     return (val)
@@ -301,14 +303,28 @@ if (!is.null(title_text))  {
 gray.ticks = theme(axis.ticks = element_line(color="gray50"))
 no.margin = theme(plot.margin=unit(c(0,0,0,0),"in"))
 no.legend = theme(legend.position="none")
+
+my.legend = theme(legend.title=element_blank(), legend.background=element_blank()) 
+opaque.legend = guides(colour = guide_legend(override.aes = list(alpha = 1)))
+
+if (args$show.attribute.legends) {
+    top.left.legend = my.legend + theme(legend.position=c(0,1), legend.justification=c(0,1))
+    top.right.legend = my.legend + theme(legend.position=c(1,1), legend.justification=c(1,1))
+} else {
+    top.left.legend = no.legend
+    top.right.legend = no.legend
+}
+
+
+
 breakpoint.margins = theme(plot.margin=unit(c(0.125,0.125,0,0), "in")) # top, right, bottom, and left margins
 
-breakpoint.ggp = breakpoint.ggp + breakpoint.margins + no.legend + theme(axis.ticks = element_blank(), axis.text = element_blank())
+breakpoint.ggp = breakpoint.ggp + breakpoint.margins + top.left.legend + theme(axis.ticks = element_blank(), axis.text = element_blank()) + opaque.legend
 
-depth.A.ggp = depth.A.ggp + xlab(sprintf("%s Pos", args$chrom.A)) + no.margin + no.legend
+depth.A.ggp = depth.A.ggp + xlab(sprintf("%s Pos", args$chrom.A)) + no.margin + top.left.legend + opaque.legend
 depth.B.ggp = depth.B.ggp + theme( axis.text.y=element_text(angle=-90, hjust=0.5), 
                                    axis.title.y = element_text(angle=-90)) + 
-                                   xlab(sprintf("%s Pos", args$chrom.B)) + coord_flip() + no.margin + no.legend
+                                   xlab(sprintf("%s Pos", args$chrom.B)) + coord_flip() + no.margin + top.right.legend + opaque.legend
 annotation.A.ggp = annotation.A.ggp + no.margin + no.legend
 annotation.B.ggp = annotation.B.ggp + no.margin + no.legend
 
