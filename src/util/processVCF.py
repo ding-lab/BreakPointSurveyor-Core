@@ -46,6 +46,10 @@ def write_bpc(o, vcf_reader, attribute, no_header=False):
         
     for record in vcf_reader:
         chromA, posA, chromB, posB = record.CHROM, record.start, record.INFO['CHR2'], record.sv_end
+
+        if isinstance(posA, list): posA = posA[0]
+        if isinstance(posB, list): posB = posB[0]
+
         if chromA < chromB:
             linedata = chromA, posA, chromB, posB 
         elif chromA > chromB:
@@ -63,7 +67,9 @@ def write_bpc(o, vcf_reader, attribute, no_header=False):
 def main():
     from optparse import OptionParser
     usage_text = """usage: %prog [options] mode ...
-        mode is one of "bed", "size"
+        Read VCF file and write coordinates of features in various formats
+        Parses events labeled SVTYPE=TRA, and extracts CHR2 information
+        mode defines output format and is one of "bed", "size", "bpc"
         """
 
     parser = OptionParser(usage_text, version="$Revision: 1.2 $")
