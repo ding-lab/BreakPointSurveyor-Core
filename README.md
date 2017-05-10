@@ -1,4 +1,4 @@
-# BreakPointSurveyor-Core
+# <img src="doc/BreakpointSurveyor.png" width="64"/> BreakPointSurveyor-Core
 *Core utilities implementing BreakPointSurveyor workflow.*
 
 ## Overview
