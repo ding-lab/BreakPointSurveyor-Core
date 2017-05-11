@@ -108,7 +108,19 @@ class Breakpoints:
             (chromA, posA, chromB, posB, attr) = self.breakpoints[bp]
             startA, startB = min(startA, posA), min(startB, posB)
             endA, endB = max(endA, posA), max(endB, posB)
-        return chromA, startA, endA, chromB, startB, endB
+
+        linedataAB = chromA, startA, endA, chromB, startB, endB
+        linedataBA = chromB, startB, endB, chromA, startA, endA
+        if chromA < chromB:
+            linedata = linedataAB
+        elif chromA > chromB:
+            linedata = linedataBA
+        elif posA < posB:
+            linedata = linedataAB
+        else:
+            linedata = linedataBA
+
+        return linedata
 
     def getBPAttr(self, c):
         "Given list of breakpoints ids c, return list of their attributes"

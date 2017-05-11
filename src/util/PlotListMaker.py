@@ -108,7 +108,11 @@ def parse_BP(f, o, fai, isBPC, barcode, context, options):
         # Default order of columns is given by BPR/BPC convention: chromA < chromB using alphabetical comparison.
         # flip_ab (-l) reverses this order
         # XOR operator: True ^ True = False, True ^ False = True, False ^ True = True, False ^ False = False
-        a_then_b = (str(chromA) < str(chromB)) ^ options.flip_ab
+        if (str(chromA) == str(chromB)):
+            a_then_b = (posA_start < posB_start) ^ options.flip_ab
+        else:
+            a_then_b = (str(chromA) < str(chromB))  ^ options.flip_ab
+
         if a_then_b:
             cols = (barcode, event_name, chromA, posA_start, posA_end, rA_start, rA_end, chromB, posB_start, posB_end, rB_start, rB_end)
         else:
