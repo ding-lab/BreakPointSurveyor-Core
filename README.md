@@ -19,8 +19,11 @@ These workflows (and the links to view them) are:
 * **1000SV** ([`1000SV` branch](https://github.com/ding-lab/BreakPointSurveyor/tree/1000SV)): Analysis of discordant reads on publicly available human sample 
 * **Synthetic** ([`Synthetic` branch](https://github.com/ding-lab/BreakPointSurveyor/tree/Synthetic)): Creation and analysis of a dataset containing an inter-chromosomal breakpoint 
 
-**Citation** *In prep*
+**Citation** 
 
+Matthew A. Wyczalkowski, Kristine M. Wylie, Song Cao, Michael D. McLellan, Jennifer Flynn, Mo Huang, Kai Ye, Xian Fan, Ken Chen, Michael C. Wendl, Li Ding; *BreakPoint Surveyor: A Pipeline for Structural Variant Visualization*. Bioinformatics 2017. doi: 10.1093/bioinformatics/btx362
+
+[Online preprint with supplemental information.](https://academic.oup.com/bioinformatics/article/3861338/BreakPoint-Surveyor-A-Pipeline-for-Structural) 
 
 ## Getting Started
 
